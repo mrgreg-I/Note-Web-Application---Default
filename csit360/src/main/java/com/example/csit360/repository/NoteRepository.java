@@ -8,5 +8,5 @@ import com.example.csit360.entity.Note;
 
 @Repository
 public interface NoteRepository extends JpaRepository<Note, Integer>{
-    public Note findByNoteId(int noteId);
+    public Note findById(int noteId);
 }
