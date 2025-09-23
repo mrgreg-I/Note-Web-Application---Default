@@ -33,7 +33,7 @@ public class NoteController {
     }
     @PostMapping("/post")
     public Note postNote(@RequestBody Note note) {
-        return noteServ.postNote(note);
+        return noteServ.postNote(note,note.getUser().getId());
     }
     @PutMapping("/put/{id}")
     public Note updateNote(@PathVariable int id, @RequestBody Note newNote) {

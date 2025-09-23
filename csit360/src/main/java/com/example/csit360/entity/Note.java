@@ -3,13 +3,15 @@ package com.example.csit360.entity;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-
 @Entity
 @Table(name="notes")
 public class Note {
@@ -20,6 +22,10 @@ public class Note {
     private String noteText;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "userId")
+	private User user;
 
     public Note() {
     }
@@ -71,4 +77,14 @@ public class Note {
     protected void onUpdate(){
         this.updatedAt=LocalDateTime.now();
     }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    
 }
