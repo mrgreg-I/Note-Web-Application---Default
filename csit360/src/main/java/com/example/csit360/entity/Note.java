@@ -8,20 +8,34 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 
 @Entity
+@Table(name="notes")
 public class Note {
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
-    private int noteId;
+    private Long noteId;
     private String title;
     private String noteText;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    public int getNoteId() {
+
+    public Note() {
+    }
+
+    public Note(Long noteId, String title, String noteText, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.noteId = noteId;
+        this.title = title;
+        this.noteText = noteText;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+    
+    public Long getNoteId() {
         return noteId;
     }
-    public void setNoteId(int noteId) {
+    public void setNoteId(Long noteId) {
         this.noteId = noteId;
     }
     public String getTitle() {
