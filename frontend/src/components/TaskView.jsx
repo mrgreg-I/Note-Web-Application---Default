@@ -150,29 +150,10 @@ function TaskView() {
       }}
       onClick={handleAddTaskClick}
     >
-      Add Task
+      Add Note
     </Button>
   </Box>
 </Box>
-
-
-        {/* Filter and Sort Menu */}
-        <Box sx={{ mb: 2 }}>
-          <Button onClick={handleMenuClick} variant="contained"
-          sx={{color:'white',bgcolor:'primary'}}>
-            Filter & Sort
-          </Button>
-
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-          >
-            {/* Sorting by Due Date */}
-            <MenuItem onClick={() => handleSortOrderChange('asc')}>Sort by Due Date (Ascending)</MenuItem>
-            <MenuItem onClick={() => handleSortOrderChange('desc')}>Sort by Due Date (Descending)</MenuItem>
-          </Menu>
-        </Box>
               
         {/* Task Cards */}
         <Box display="flex" gap={3} flexWrap="wrap" >
