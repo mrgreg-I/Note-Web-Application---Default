@@ -78,9 +78,9 @@ public class UserController {
 
     //LOGIN FUNCTIONALITY
     @PostMapping("/login")
-    public User login(@RequestParam String email, @RequestParam String password) {
+    public User login(@RequestParam String userName, @RequestParam String password) {
     try {
-        return userService.loginUser(email, password);
+        return userService.loginUser(userName, password);
     } catch (RuntimeException e) {
         throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
     }
