@@ -10,21 +10,17 @@ import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextF
 import Logo from "../assets/Logo1.png";
 
 function TaskView() {
-  const { toDoListID } = useParams();
-  const [tasks, setTasks] = useState([]);
+  const [note, setNote] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [filterStatus, setFilterStatus] = useState('All');
   const [sortOrder, setSortOrder] = useState('asc'); // Added state for sorting order
   const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [newTask, setNewTask] = useState({
+  const [newNote, setNewNote] = useState({
     title: '',
-    description: '',
-    status: 'Pending',
+    notes: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    dueDate: '',  // Newly added dueDate
-    tag: { tagId: '' },
-    toDoList: { toDoListID: toDoListID },
+    user: { userId: userId },
   });
   const navigate = useNavigate();
   const token = localStorage.getItem('authToken');
@@ -37,38 +33,17 @@ function TaskView() {
       }
 
       try {
-        const response = await axios.get(`http://localhost:8080/api/taskbuster/getTasks?toDoListID=${toDoListID}`, {
+        const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setTasks(response.data || []);
+        setNote(response.data || []);
       } catch (error) {
-        console.error('Error fetching tasks:', error);
+        console.error('Error fetching note:', error);
       }
     };
 
     fetchTasks();
-  }, [token, toDoListID]);
-
-  useEffect(() => {
-    let tasksToDisplay = tasks;
-
-    // Filter by status
-    if (filterStatus !== 'All') {
-      tasksToDisplay = tasksToDisplay.filter((task) => task.status === filterStatus);
-    }
-
-    // Sort by due date
-    tasksToDisplay = tasksToDisplay.sort((a, b) => {
-      if (a.dueDate && b.dueDate) {
-        const dateA = new Date(a.dueDate);
-        const dateB = new Date(b.dueDate);
-        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-      }
-      return 0;
-    });
-
-    setFilteredTasks(tasksToDisplay);
-  }, [tasks, filterStatus, sortOrder]);
+  }, [token, userId]);
 
   const handleAddTaskClick = () => {
     setOpenAddDialog(true);
@@ -78,37 +53,17 @@ function TaskView() {
     setOpenAddDialog(false);
   };
 
-  const postTag = (priority) => {
-    const newTag = {
-      name: priority,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    axios.post('/api/taskbuster/postTag', newTag)
+  const postNote = (note) => {
+    axios.post('/api/note/post', note)
       .then(response => {
-        setNewTask(prevTask => ({
-          ...prevTask,
-          tag: { tagId: response.data.tagId },
-        }));
-      })
-      .catch(error => console.error("Error posting tag:", error));
-  };
-
-  const postTask = (task) => {
-    axios.post('/api/taskbuster/postTask', task)
-      .then(response => {
-        const newTask = response.data;
-        setTasks(prevTasks => [...prevTasks, newTask]);
+        const newNote = response.data;
+        setTasks(prevTasks => [...prevTasks, newNote]);
         setNewTask({
           title: '',
-          description: '',
-          status: 'Pending',
+          notes: '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          dueDate: '',
-          tag: { tagId: '' },
-          toDoList: { toDoListID: toDoListID },
+          user: { userId: value }
         });
       })
       .catch(error => console.error("Error posting task:", error));
@@ -116,18 +71,17 @@ function TaskView() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    postTask(newTask);
+    postTask(newNote);
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    if (name === "todoListId") {
-      setNewTask(prevTask => ({
-        ...prevTask,
-        toDoList: { ...prevTask.toDoList, toDoListID: value },
+    if (name === "userId") {
+      setNewNote(prevTask => ({
+        ...prevTask,user: { userId: value }
       }));
     } else {
-      setNewTask(prevTask => ({
+      setNewNote(prevTask => ({
         ...prevTask,
         [name]: value,
       }));
@@ -160,11 +114,6 @@ function TaskView() {
           <Link to="/todos" style={{textDecoration:'none'}}>
             <Typography sx={{ color: "white", fontFamily: "Poppins", fontSize: "16px", cursor: "pointer", textDecoration: "none", fontWeight: "bold" }}>
               Home
-            </Typography>
-          </Link>
-          <Link to="/profile" style={{textDecoration:'none'}}>
-            <Typography sx={{ color: "white", fontFamily: "Poppins", fontSize: "16px", cursor: "pointer", textDecoration: "none", fontWeight: "bold" }}>
-              Profile
             </Typography>
           </Link>
           <Link to="/login" style={{textDecoration:'none'}}>
@@ -217,12 +166,6 @@ function TaskView() {
             open={Boolean(anchorEl)}
             onClose={handleMenuClose}
           >
-            {/* Status Filter */}
-            <MenuItem onClick={() => { setFilterStatus('All'); handleMenuClose(); }}>All</MenuItem>
-            <MenuItem onClick={() => { setFilterStatus('Pending'); handleMenuClose(); }}>Pending</MenuItem>
-            <MenuItem onClick={() => { setFilterStatus('Ongoing'); handleMenuClose(); }}>Ongoing</MenuItem>
-            <MenuItem onClick={() => { setFilterStatus('Completed'); handleMenuClose(); }}>Completed</MenuItem>
-
             {/* Sorting by Due Date */}
             <MenuItem onClick={() => handleSortOrderChange('asc')}>Sort by Due Date (Ascending)</MenuItem>
             <MenuItem onClick={() => handleSortOrderChange('desc')}>Sort by Due Date (Descending)</MenuItem>
@@ -236,17 +179,11 @@ function TaskView() {
               <Box width="300px" padding={2} bgcolor="#F1F0E8" borderRadius="8px" boxShadow={2} sx={{ cursor: "pointer" }}>
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Typography variant="h6" fontFamily="Poppins" fontWeight="bold" color="#091057">
-                    {task.title}
+                    {note.title}
                   </Typography>
                 </Box>
                 <Typography color="#EC8305" fontFamily="Poppins" fontSize="14px" marginTop={1}>
-                  {task.description}
-                </Typography>
-                <Typography color="#EC8305" fontFamily="Poppins" fontSize="14px" marginTop={1}>
-                  {task.status}
-                </Typography>
-                <Typography fontFamily="Poppins" fontSize="14px" marginTop={1} color="#091057">
-                  Due: {task.dueDate ? new Date(task.dueDate).toLocaleString() : "N/A"}
+                  {note.notes}
                 </Typography>
               </Box>
             </Link>
@@ -257,13 +194,8 @@ function TaskView() {
       {/* Add Task Dialog */}
       <Dialog open={openAddDialog} onClose={handleCloseDialog}>
         <form onSubmit={handleSubmit}>
-          <DialogTitle>Add New Task</DialogTitle>
+          <DialogTitle>Add New Note</DialogTitle>
           <DialogContent>
-            <Box sx={{ display: 'flex', justifyContent: 'space-around', mb: 2, gap: 2 }}>
-              <Button onClick={() => postTag("Low Priority")} variant="contained" sx={{ bgcolor: "primary", color: "white" }}>Low Priority</Button>
-              <Button onClick={() => postTag("High Priority")} variant="contained" sx={{ bgcolor: "primary", color: "white" }}>High Priority</Button>
-              <Button onClick={() => postTag("Urgent")} variant="contained" sx={{ bgcolor: "primary", color: "white" }}>Urgent</Button>
-            </Box>
             <TextField
               autoFocus
               margin="dense"
@@ -271,41 +203,15 @@ function TaskView() {
               fullWidth
               variant="outlined"
               value={newTask.title}
-              onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+              onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
             />
             <TextField
               margin="dense"
               label="Task Description"
               fullWidth
               variant="outlined"
-              value={newTask.description}
-              onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-            />
-            <FormControl fullWidth margin="dense">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={newTask.status}
-                onChange={(e) => setNewTask({ ...newTask, status: e.target.value })}
-                label="Status"
-              >
-                <MenuItem value="Pending">Pending</MenuItem>
-                <MenuItem value="Ongoing">Ongoing</MenuItem>
-                <MenuItem value="Completed">Completed</MenuItem>
-              </Select>
-            </FormControl>
-
-            <TextField
-              label="Due Date"
-              name="dueDate"
-              type="datetime-local"
-              variant="outlined"
-              value={newTask.dueDate}
-              onChange={handleChange}
-              fullWidth
-              required
-              InputLabelProps={{
-                shrink: true,
-              }}
+              value={newNote.notes}
+              onChange={(e) => setNewNote({ ...newNote, notes: e.target.value })}
             />
           </DialogContent>
           <DialogActions>

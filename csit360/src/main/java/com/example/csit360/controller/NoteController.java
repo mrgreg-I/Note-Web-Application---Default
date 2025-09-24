@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.csit360.entity.Note;
@@ -44,5 +45,10 @@ public class NoteController {
         noteServ.deleteNote(id);
     }
 
+    //Get ToDoList by UserId
+    @GetMapping("/tasks")
+    public List<Note> getToDosByUserId(@RequestParam Long userId) {
+    return noteServ.findByUserUserId(userId);
+    }
     
 }

@@ -30,63 +30,42 @@ const theme = createTheme({
 });
 
 function TaskUpdate() {
-  const { taskId } = useParams();  // Get taskId from URL
+  const { noteId } = useParams();  // Get taskId from URL
   const [currentData, setCurrentData] = useState({
-    taskId: '',
+    noteId: '',
     title: '',
-    description: '',
-    status: 'Pending',
+    notes: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    dueDate: '',
-    tag: { tagId: '', name: '' },
-    toDoList: { toDoListID: '' },
+    user: { userId: '' },
   });
 
   const [updateData, setUpdateData] = useState({
-    taskId: '',
+    noteId: '',
     title: '',
-    description: '',
-    status: 'Pending',
+    notes: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    dueDate: '',
-    tag: { tagId: '', name: '' },
-    toDoList: { toDoListID: '' },
+    user: { userId: '' },
   });
 
   useEffect(() => {
-    if (taskId) {
+    if (noteId) {
       // Fetch task details from API
-      axios.get(`/api/taskbuster/getTask/${taskId}`)
+      axios.get(`/api/note/get/${noteId}`)
         .then(response => {
-          const task = response.data;
-          setCurrentData(task);
-          setUpdateData(task);  // Pre-fill form with task data
+          const note = response.data;
+          setCurrentData(note);
+          setUpdateData(note);  // Pre-fill form with task data
         })
         .catch(error => console.error("Error fetching task:", error));
     }
-  }, [taskId]);
+  }, [noteId]);
 
-  const updateTag = (tagId, priority) => {
-    const updatedTag = {
-      name: priority,
-      updatedAt: new Date().toISOString(),
-    };
 
-    axios.put(`/api/taskbuster/putTag?tagId=${tagId}`, updatedTag)
-      .then(response => {
-        setUpdateData(prevData => ({
-          ...prevData,
-          tag: { tagId: response.data.tagId, name: response.data.name },
-        }));
-      })
-      .catch(error => console.error("Error updating tag:", error));
-  };
-
-  const updateTask = (task) => {
-    axios.put(`/api/taskbuster/putTask`, task, {
-      params: { taskId: task.taskId },
+  const updateTask = (note) => {
+    axios.put(`/api/note/put`, note, {
+      params: { noteId: note.noteId },
     })
       .then(response => {
         console.log("Task updated successfully:", response.data);
@@ -107,10 +86,6 @@ function TaskUpdate() {
     }));
   };
 
-  const handleTagUpdate = (tagId, priority) => {
-    updateTag(tagId, priority);
-  };
-
   
   const handleLogout = () => {
     localStorage.removeItem('authToken');
@@ -123,8 +98,7 @@ function TaskUpdate() {
         <nav className="navbar">
           <h1 className="navbar-logo">TaskBuster</h1>
           <div className="navbar-links">
-          <Link to="/todos" className="nav-link">Todos</Link>
-            <Link to="/profile" className="nav-link">Profile</Link>
+            <Link to="/tasks" className="nav-link">Tasks</Link>
             <span onClick={handleLogout} className="nav-link logout-text">Logout</span>
           </div>
         </nav>
@@ -133,31 +107,6 @@ function TaskUpdate() {
             <Typography variant="h2" gutterBottom>
               Update Task
             </Typography>
-
-            {/* Priority Selection Buttons (Aligned in a row) */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-around', mb: 2, gap: 2 }}>
-              <Button
-                onClick={() => handleTagUpdate(currentData.tag.tagId, "Low Priority")}
-                variant="contained"
-                sx={{ bgcolor: "#fdcc01" }}
-              >
-                Low Priority
-              </Button>
-              <Button
-                onClick={() => handleTagUpdate(currentData.tag.tagId, "High Priority")}
-                variant="contained"
-                sx={{ bgcolor: "#fdcc01" }}
-              >
-                High Priority
-              </Button>
-              <Button
-                onClick={() => handleTagUpdate(currentData.tag.tagId, "Urgent")}
-                variant="contained"
-                sx={{ bgcolor: "#fdcc01" }}
-              >
-                Urgent
-              </Button>
-            </Box>
 
             {/* Paper component for form container */}
             <Paper elevation={3} sx={{ padding: 3 }}>
@@ -173,26 +122,13 @@ function TaskUpdate() {
                     required
                   />
                   <TextField
-                    label="Description"
-                    name="description"
+                    label="Notes"
+                    name="notes"
                     variant="outlined"
-                    value={updateData.description}
+                    value={updateData.notes}
                     onChange={handleUpdateChange}
                     fullWidth
                     required
-                  />
-                  <TextField
-                    label="Due Date"
-                    name="dueDate"
-                    type="datetime-local"
-                    variant="outlined"
-                    value={updateData.dueDate}
-                    onChange={handleUpdateChange}
-                    fullWidth
-                    required
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
                   />
                   <Button
                     type="submit"
