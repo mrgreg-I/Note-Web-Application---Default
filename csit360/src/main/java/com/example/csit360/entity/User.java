@@ -16,7 +16,7 @@ import jakarta.persistence.Table;
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long userId;
     @Column(nullable = false, unique = true)
     private String username;
     private String password;
@@ -26,18 +26,18 @@ public class User {
     public User() {
     }
 
-    public User(Long id, String username, String password) {
-        this.id = id;
+    public User(Long userId, String username, String password) {
+        this.userId = userId;
         this.username = username;
         this.password = password;
     }
 
     public Long getId() {
-        return id;
+        return userId;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setId(Long userId) {
+        this.userId = userId;
     }
 
     public String getUsername() {
