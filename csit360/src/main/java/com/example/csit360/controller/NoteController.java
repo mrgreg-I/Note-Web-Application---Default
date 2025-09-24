@@ -28,7 +28,7 @@ public class NoteController {
         return noteServ.getAllNotes();
     }
     @GetMapping("/get/{id}")
-    public Note findNoteById(@PathVariable int id) {
+    public Note findNoteById(@PathVariable Long id) {
         return noteServ.findNoteById(id);
     }
     @PostMapping("/post")
@@ -36,11 +36,13 @@ public class NoteController {
         return noteServ.postNote(note,note.getUser().getId());
     }
     @PutMapping("/put/{id}")
-    public Note updateNote(@PathVariable int id, @RequestBody Note newNote) {
+    public Note updateNote(@PathVariable Long id, @RequestBody Note newNote) {
         return noteServ.updateNote(id, newNote);
     }
     @DeleteMapping("/delete/{id}")
-    public void deleteNote(@PathVariable int id){
+    public void deleteNote(@PathVariable Long id){
         noteServ.deleteNote(id);
     }
+
+    
 }

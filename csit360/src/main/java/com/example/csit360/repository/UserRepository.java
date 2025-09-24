@@ -10,4 +10,5 @@ import com.example.csit360.entity.User;
 @Repository
 public interface  UserRepository extends JpaRepository<User, Long>  {
     Optional<User> findByUsernameAndPassword(String username, String password);
+    
 }

@@ -42,11 +42,11 @@ public Note postNote(Note note, Long userId) {
         return noteRepo.findAll();
     }
 
-    public Note findNoteById(int id){
-        return noteRepo.findById(id);
+    public Note findNoteById(Long id){
+        return noteRepo.findById(id).orElse(null);
     }
 
-    public Note updateNote(int id, Note newNote) {
+    public Note updateNote(Long id, Note newNote) {
     Note existingNote = findNoteById(id);
     if (existingNote == null) {
         throw new IllegalArgumentException("Note with id " + id + " not found.");
@@ -64,7 +64,11 @@ public Note postNote(Note note, Long userId) {
     return existingNote;
 }
     
-    public void deleteNote(int id){
+    public void deleteNote(Long id){
         noteRepo.deleteById(id);
+    }
+
+    public List<Note> findByUserUserId(Long userId) {
+        return noteRepo.findByUserUserId(userId);
     }
 }
