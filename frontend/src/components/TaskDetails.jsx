@@ -18,6 +18,7 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 
 function TaskUpdate() {
+  
   const navigate = useNavigate();
   const location = useLocation();
   const { noteId } = location.state || {};  // Get taskId from URL
@@ -29,7 +30,7 @@ function TaskUpdate() {
   const [currentData, setCurrentData] = useState({
     noteId: '',
     title: '',
-    notes: '',
+    noteText: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     user: { userId: '' },
@@ -37,13 +38,13 @@ function TaskUpdate() {
   const [updateData, setUpdateData] = useState({
     noteId: '',
     title: '',
-    notes: '',
+    noteText: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     user: { userId: '' },
   });
 
-
+console.log('noteId from location.state:', noteId);
   const token = localStorage.getItem('authToken');
   const userId = localStorage.getItem('loggedInUserId');
 
@@ -60,31 +61,28 @@ function TaskUpdate() {
     };
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (noteId && token) {
-        try {
-          const taskResponse = await axios.get(`/api/note/get/${noteId}`, authHeaders());
-          setCurrentData(taskResponse.data);
-          setUpdateData(taskResponse.data);
-        } catch (error) {
-          console.error('Error fetching task or comments:', error);
-        }
+ useEffect(() => {
+  const fetchData = async () => {
+    if (noteId) {
+      try {
+        const taskResponse = await axios.get(`/api/note/get/${noteId}`);
+        setCurrentData(taskResponse.data);
+        setUpdateData(taskResponse.data);
+        console.log('Fetched note:', taskResponse.data);
+      } catch (error) {
+        console.error('Error fetching task:', error);
       }
-    };
-
-    fetchData();
-  }, [noteId, token]);
-  
+    }
+  };
+  fetchData();
+  }, [noteId]);
 
 // start of update functions
 
 
 const updateTask = async (note) => {
   try {
-    const response = await axios.put(`/api/note/put`, note, {
-      params: { noteId: note.noteId },
-    });
+    const response = await axios.put(`/api/note/put/${note.noteId}`, note);
 
     console.log("Note updated successfully:", response.data);
 
@@ -92,7 +90,7 @@ const updateTask = async (note) => {
     setCurrentData(prevState => ({
       ...prevState,
       title: response.data.title,
-      notes: response.data.notes,
+      noteText: response.data.noteText,
       updatedAt: new Date().toISOString(),
     }));
 
@@ -100,7 +98,7 @@ const updateTask = async (note) => {
     setUpdateData(prevData => ({
       ...prevData,
       title: response.data.title,
-      notes: response.data.notes,
+      noteText: response.data.noteText,
       updatedAt: new Date().toISOString(),
     }));
     
@@ -131,20 +129,19 @@ const handleUpdateChange = (e) => {
     navigate('/login');
   };
 
-  const confirmDeleteTask = () => {
-    if (selectedNote) {
-      axios.delete(`/api/note/delete/${selectedNote.noteId}`, authHeaders())
-        .then(() => {
-          // After deleting, navigate the user to the correct page
-          navigate(`/tasks/${currentData.user.userId}`); // Adjust as needed
-          setConfirm(false); // Close the confirmation dialog
-        })
-        .catch(error => {
-          console.error('Error deleting task:', error);
-          setConfirm(false); // Close the dialog if an error occurs
-        });
-    }
-  };
+ const confirmDeleteTask = () => {
+  if (selectedNote && selectedNote.noteId) {
+    axios.delete(`/api/note/delete/${selectedNote.noteId}`)
+      .then(() => {
+        navigate(`/tasks`);
+        setConfirm(false);
+      })
+      .catch(error => {
+        console.error('Error deleting task:', error);
+        setConfirm(false);
+      });
+  }
+};
 
   return (
     <div>
@@ -157,12 +154,12 @@ const handleUpdateChange = (e) => {
         padding={2}
         color="white"
       >
-        <Link to="/todos">
+        <Link to="/tasks">
          <Button sx={{ width: 'auto', mr: 1 }}><img src={Logo} alt="Logo" style={{ maxWidth: "60px" }} /></Button>
         </Link>
         
         <Box display="flex" gap={3}>
-          <Link to="/todos">
+          <Link to="/tasks">
             <Typography
               sx={{
                 color: "white",
@@ -176,20 +173,7 @@ const handleUpdateChange = (e) => {
               Home
             </Typography>
           </Link>
-          <Link to="/profile">
-            <Typography
-              sx={{
-                color: "white",
-                fontFamily: "Poppins",
-                fontSize: "16px",
-                cursor: "pointer",
-                textDecoration: "none",
-                fontWeight: "bold",
-              }}
-            >
-              Profile
-            </Typography>
-          </Link>
+    
           <Link to="/login">
             <Typography
               sx={{
@@ -210,7 +194,7 @@ const handleUpdateChange = (e) => {
 
       <Box padding={4}>
         <Box display="flex" alignItems="center" marginBottom={3}>
-            <IconButton onClick={() => navigate(`/tasks/${currentData.user.userId}`)}>
+            <IconButton onClick={() => navigate(`/tasks`)}>
               <ArrowBackIcon sx={{ color: "#091057" }} />
             </IconButton>
         </Box>
@@ -279,7 +263,7 @@ const handleUpdateChange = (e) => {
           }}
         >
           <Typography>
-            {currentData.notes}
+            {currentData.noteText}
           </Typography>
         </Box>
         
@@ -298,9 +282,9 @@ const handleUpdateChange = (e) => {
                   />
                   <TextField
                     label="Notes"
-                    name="notes"
+                    name="noteText"
                     variant="outlined"
-                    value={updateData.notes}
+                    value={updateData.noteText}
                     onChange={handleUpdateChange}
                     fullWidth
                     required

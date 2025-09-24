@@ -35,7 +35,7 @@ function TaskCreate() {
   const { userId } = location.state || {}; // Retrieve toDoListId from location state
   const [newNote, setNewNote] = useState({
     title: '',
-    notes: '',
+    noteText: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     user: { userId: userId },
@@ -114,9 +114,9 @@ function TaskCreate() {
                 />
                 <TextField
                   label="Notes"
-                  name="notes"
+                  name="noteText"
                   variant="outlined"
-                  value={newNote.notes}
+                  value={newNote.noteText}
                   onChange={handleChange}
                   fullWidth
                   required

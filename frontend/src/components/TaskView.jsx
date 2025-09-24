@@ -10,7 +10,7 @@ import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextF
 import Logo from "../assets/Logo1.png";
 
 function TaskView() {
-  
+
   const userId = localStorage.getItem('loggedInUserId'); //
   console.log('userId from localStorage:', userId);
 
@@ -21,7 +21,7 @@ function TaskView() {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [newNote, setNewNote] = useState({
     title: '',
-    notes: '',
+    noteText: '',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     user: { userId: userId },
@@ -30,24 +30,22 @@ function TaskView() {
   const token = localStorage.getItem('authToken');
 
   useEffect(() => {
-    const fetchTasks = async () => {
-      if (!token) {
-        console.error('Token is missing');
-        return;
-      }
+  const fetchTasks = async () => {
+    if (!userId) {
+      console.error('UserId is missing');
+      return;
+    }
 
-      try {
-        const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setNote(response.data || []);
-      } catch (error) {
-        console.error('Error fetching note:', error);
-      }
-    };
+    try {
+      const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
+      setNote(response.data || []);
+    } catch (error) {
+      console.error('Error fetching note:', error);
+    }
+  };
 
-    fetchTasks();
-  }, [token, userId]);
+  fetchTasks();
+}, [userId]);
 
   const handleAddTaskClick = () => {
     setOpenAddDialog(true);
@@ -61,13 +59,13 @@ function TaskView() {
     axios.post('/api/note/post', note)
       .then(response => {
         const newNote = response.data;
-        setTasks(prevTasks => [...prevTasks, newNote]);
+        setNote(prevTasks => [...prevTasks, newNote]);
         setNewNote({
           title: '',
-          notes: '',
+          noteText: '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          user: { userId: value }
+          user: { userId: userId }
         });
       })
       .catch(error => console.error("Error posting task:", error));
@@ -75,7 +73,7 @@ function TaskView() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    postTask(newNote);
+    postNote(newNote);
   };
 
   const handleChange = (e) => {
@@ -111,11 +109,11 @@ function TaskView() {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" bgcolor="#091057" padding={2} color="white">
-        <Link to="/todos">
+        <Link to="/tasks">
           <Button sx={{ width: 'auto', mr: 1 }}><img src={Logo} alt="Logo" style={{ maxWidth: "60px" }} /></Button>
         </Link>
         <Box display="flex" gap={3}>
-          <Link to="/todos" style={{textDecoration:'none'}}>
+          <Link to="/tasks" style={{textDecoration:'none'}}>
             <Typography sx={{ color: "white", fontFamily: "Poppins", fontSize: "16px", cursor: "pointer", textDecoration: "none", fontWeight: "bold" }}>
               Home
             </Typography>
@@ -178,20 +176,20 @@ function TaskView() {
               
         {/* Task Cards */}
         <Box display="flex" gap={3} flexWrap="wrap" >
-          {filteredTasks.map((task) => (
-            <Link to={`/taskdetails`} state={{ taskId: task.taskId }} onClick={(event) => event.stopPropagation()} style={{textDecoration:'none'}}>
-              <Box width="300px" padding={2} bgcolor="#F1F0E8" borderRadius="8px" boxShadow={2} sx={{ cursor: "pointer" }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center">
-                  <Typography variant="h6" fontFamily="Poppins" fontWeight="bold" color="#091057">
-                    {note.title}
-                  </Typography>
-                </Box>
-                <Typography color="#EC8305" fontFamily="Poppins" fontSize="14px" marginTop={1}>
-                  {note.notes}
-                </Typography>
-              </Box>
-            </Link>
-          ))}
+        {note.map((task) => (
+  <Link to={`/taskdetails`} state={{ noteId: task.noteId }} onClick={(event) => event.stopPropagation()} style={{textDecoration:'none'}} key={task.noteId}>
+    <Box width="300px" padding={2} bgcolor="#F1F0E8" borderRadius="8px" boxShadow={2} sx={{ cursor: "pointer" }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center">
+        <Typography variant="h6" fontFamily="Poppins" fontWeight="bold" color="#091057">
+          {task.title}
+        </Typography>
+      </Box>
+      <Typography color="#EC8305" fontFamily="Poppins" fontSize="14px" marginTop={1}>
+        {task.noteText}    
+      </Typography>
+    </Box>
+  </Link>
+))}
         </Box>
       </Box>
 
@@ -214,8 +212,8 @@ function TaskView() {
               label="Task Description"
               fullWidth
               variant="outlined"
-              value={newNote.notes}
-              onChange={(e) => setNewNote({ ...newNote, notes: e.target.value })}
+              value={newNote.noteText}
+              onChange={(e) => setNewNote({ ...newNote, noteText: e.target.value })}
             />
           </DialogContent>
           <DialogActions>
