@@ -43,23 +43,26 @@ const Login = ({ onLogin }) => {
       return;
     }
 
-    try {
-      const response = await axios.post(
-        `http://localhost:8080/api/user/login?username=${username}&password=${password}`
-      );
-      const { userId, token } = response.data;
+   try {
+  const response = await axios.post(
+    `http://localhost:8080/api/user/login?userName=${username}&password=${password}`
+  );
+  console.log('Login response:', response.data); // <-- Add this line
 
-      // Save token and userId to localStorage
-      localStorage.setItem('authToken', token);
-      localStorage.setItem('loggedInUserId', userId);
+  // If response.data.userId exists, use it. If response.data.id, use that.
+  const userId = response.data.userId || response.data.id;
+  localStorage.setItem('loggedInUserId', userId);
 
-      alert('Logged In Successfully!');
-      onLogin(userId); // Pass userId to App
-      navigate('/tasks'); // Redirect to profile after login
-    } catch (error) {
-      console.error('Failed to log in:', error);
-      alert('Invalid username or password. Please try again.');
-    }
+  // If you don't have a token, you can skip saving it.
+  // localStorage.setItem('authToken', token);
+
+  alert('Logged In Successfully!');
+  onLogin(userId);
+  navigate('/tasks');
+} catch (error) {
+  console.error('Failed to log in:', error);
+  alert('Invalid username or password. Please try again.');
+}
   };
 
   return (

@@ -10,6 +10,10 @@ import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextF
 import Logo from "../assets/Logo1.png";
 
 function TaskView() {
+  
+  const userId = localStorage.getItem('loggedInUserId'); //
+  console.log('userId from localStorage:', userId);
+
   const [note, setNote] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [filterStatus, setFilterStatus] = useState('All');
@@ -58,7 +62,7 @@ function TaskView() {
       .then(response => {
         const newNote = response.data;
         setTasks(prevTasks => [...prevTasks, newNote]);
-        setNewTask({
+        setNewNote({
           title: '',
           notes: '',
           createdAt: new Date().toISOString(),
@@ -202,7 +206,7 @@ function TaskView() {
               label="Task Title"
               fullWidth
               variant="outlined"
-              value={newTask.title}
+              value={newNote.title}
               onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
             />
             <TextField
