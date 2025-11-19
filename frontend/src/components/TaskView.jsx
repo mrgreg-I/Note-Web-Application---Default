@@ -1,4 +1,5 @@
 import * as React from 'react';
+import initCardanoWasm from "@emurgo/cardano-serialization-lib-browser/cardano_serialization_lib_bg.wasm?init";
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -50,6 +51,12 @@ function TaskView() {
     }
   }, []);
 
+  const hexToBech32 = async (hex) => {
+    const CardanoWasm = await initCardanoWasm();
+    const addr = CardanoWasm.Address.from_bytes(Buffer.from(hex, "hex"));
+    return addr.to_bech32();
+  };
+
   // Function to sync/connect wallet using CIP-0030 standard
   const handleSyncWallet = async () => {
     try {
@@ -81,10 +88,11 @@ function TaskView() {
                 
                 // Store wallet info
                 setWalletName(wallet);
-                setWalletAddress(address);
+                const bech32 = await hexToBech32(address);
+                setWalletAddress(bech32);
+                localStorage.setItem('walletAddress', bech32);
                 setWalletConnected(true);
                 localStorage.setItem('connectedWallet', wallet);
-                localStorage.setItem('walletAddress', address);
                 
                 setWalletSuccess(`✅ Connected to ${wallet.charAt(0).toUpperCase() + wallet.slice(1)} wallet! Address: ${address.substring(0, 20)}...`);
                 connected = true;
