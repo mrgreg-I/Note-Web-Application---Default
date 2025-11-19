@@ -45,19 +45,19 @@ function TaskCreate() {
 
   // Function to post the task
   const postTask = (note) => {
-    axios.post('/api/note/post', note)
-      .then(response => {
-        setSubmittedNote(response.data);  // Update the submittedTask state
-        // Reset the form after submission
-        setNewNote({
-          title: '',
-          note: '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          user: { userId: userId },
-        });
-      })
-      .catch(error => console.error("Error posting task:", error));
+   axios.post('/api/note/post', note)
+  .then(response => {
+    const createdNote = response.data;
+    // Now log to blockchain
+    axios.post('http://localhost:8080/api/blockchain/simulate-note-transaction', {
+      noteId: createdNote.noteId,
+      walletAddress: walletAddress,
+      noteTitle: createdNote.title
+    })
+    .then(res => { /* handle success */ })
+    .catch(err => { /* handle error */ });
+  })
+  .catch(error => console.error("Error posting task:", error));
   };
 
   // Handle form submission

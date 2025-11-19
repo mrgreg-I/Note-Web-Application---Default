@@ -33,6 +33,9 @@ function TaskView() {
     updatedAt: new Date().toISOString(),
     user: { userId: userId },
   });
+  const [transactionInfo, setTransactionInfo] = useState(null);
+  const [showTransactionDialog, setShowTransactionDialog] = useState(false);
+  const [transactionError, setTransactionError] = useState('');
   const navigate = useNavigate();
   const token = localStorage.getItem('authToken');
 
@@ -132,20 +135,81 @@ function TaskView() {
     setOpenAddDialog(false);
   };
 
-  const postNote = (note) => {
-    axios.post('/api/note/post', note)
-      .then(response => {
-        const newNote = response.data;
-        setNote(prevTasks => [...prevTasks, newNote]);
-        setNewNote({
-          title: '',
-          noteText: '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          user: { userId: userId }
+  // Function to log transaction to blockchain
+  const logTransactionToBlockchain = async (noteId, noteTitle, actionType) => {
+    try {
+      const walletAddr = localStorage.getItem('walletAddress');
+      const wallet = localStorage.getItem('connectedWallet');
+      
+      if (!walletAddr || !wallet) {
+        console.log('Wallet not connected - logging locally only');
+        return null;
+      }
+
+      // Call appropriate blockchain endpoint based on action
+      let endpoint = '';
+      let payload = {
+        walletAddress: walletAddr,
+        noteId: noteId,
+        noteTitle: noteTitle
+      };
+
+      if (actionType === 'CREATE') {
+        endpoint = '/api/blockchain/simulate-note-transaction';
+      } else if (actionType === 'UPDATE') {
+        endpoint = '/api/blockchain/simulate-note-update-transaction';
+      } else if (actionType === 'DELETE') {
+        endpoint = '/api/blockchain/simulate-note-deletion-transaction';
+      }
+
+      const response = await axios.post(`http://localhost:8080${endpoint}`, payload);
+      console.log(`${actionType} transaction logged:`, response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error logging to blockchain:', error);
+      setTransactionError(`Blockchain logging failed: ${error.message}`);
+      return null;
+    }
+  };
+
+  const handleCloseTransactionDialog = () => {
+    setShowTransactionDialog(false);
+    setTransactionInfo(null);
+    setTransactionError('');
+  };
+
+  const postNote = async (note) => {
+    try {
+      const response = await axios.post('/api/note/post', note);
+      const newNote = response.data;
+      
+      // Log creation to blockchain if wallet is connected
+      const txInfo = await logTransactionToBlockchain(newNote.noteId, newNote.title, 'CREATE');
+      
+      if (txInfo) {
+        setTransactionInfo({
+          type: 'CREATE',
+          noteTitle: newNote.title,
+          transactionId: txInfo.transactionId,
+          network: txInfo.network,
+          fee: txInfo.fee,
+          wallet: localStorage.getItem('connectedWallet')
         });
-      })
-      .catch(error => console.error("Error posting task:", error));
+        setShowTransactionDialog(true);
+      }
+      
+      setNote(prevTasks => [...prevTasks, newNote]);
+      setNewNote({
+        title: '',
+        noteText: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        user: { userId: userId }
+      });
+    } catch (error) {
+      console.error("Error posting task:", error);
+      setTransactionError("Error creating task: " + error.message);
+    }
   };
 
   const handleSubmit = (e) => {
@@ -305,6 +369,55 @@ function TaskView() {
             <Button type='submit'>Add Task</Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Transaction Dialog */}
+      <Dialog open={showTransactionDialog} onClose={handleCloseTransactionDialog} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ bgcolor: "#091057", color: "white", fontFamily: "Poppins", fontWeight: "bold" }}>
+          ✅ {transactionInfo?.type} Transaction Logged
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          {transactionError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {transactionError}
+            </Alert>
+          )}
+          {transactionInfo && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Task:</Typography>
+                <Typography>{transactionInfo.noteTitle}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Action:</Typography>
+                <Typography>{transactionInfo.type}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Transaction ID:</Typography>
+                <Typography sx={{ wordBreak: "break-all", fontFamily: "monospace" }}>
+                  {transactionInfo.transactionId}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Network:</Typography>
+                <Typography>{transactionInfo.network}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Fee:</Typography>
+                <Typography>{transactionInfo.fee}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Wallet:</Typography>
+                <Typography>{transactionInfo.wallet}</Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseTransactionDialog} sx={{ color: "#091057" }}>
+            Close
+          </Button>
+        </DialogActions>
       </Dialog>
 
       <Box

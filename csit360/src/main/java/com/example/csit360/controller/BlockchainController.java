@@ -63,12 +63,21 @@ public class BlockchainController {
      * Simulate note creation transaction on blockchain
      */
     @PostMapping("/simulate-note-transaction")
-    public ResponseEntity<Map<String, Object>> simulateNoteTransaction(
-            @RequestParam Long noteId,
-            @RequestParam String walletAddress,
-            @RequestParam String noteTitle) {
+    public ResponseEntity<Map<String, Object>> simulateNoteTransaction(@RequestBody Map<String, Object> payload) {
         try {
-            if (!blockchainService.isValidCardanoAddress(walletAddress)) {
+            Long noteId = null;
+            String walletAddress = null;
+            String noteTitle = null;
+            if (payload.get("noteId") instanceof Integer) {
+                noteId = ((Integer) payload.get("noteId")).longValue();
+            } else if (payload.get("noteId") instanceof Long) {
+                noteId = (Long) payload.get("noteId");
+            } else if (payload.get("noteId") != null) {
+                noteId = Long.valueOf(payload.get("noteId").toString());
+            }
+            walletAddress = (String) payload.get("walletAddress");
+            noteTitle = (String) payload.get("noteTitle");
+            if (walletAddress == null || !blockchainService.isValidCardanoAddress(walletAddress)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(Map.of("error", "Invalid Cardano address format"));
             }
