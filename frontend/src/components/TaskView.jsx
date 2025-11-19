@@ -1,5 +1,6 @@
 import * as React from 'react';
 import initCardanoWasm from "@emurgo/cardano-serialization-lib-browser/cardano_serialization_lib_bg.wasm?init";
+import {Blockfrost, WebWallet, Blaze} from '@blaze-cardano/sdk'
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -27,6 +28,7 @@ function TaskView() {
   const [walletName, setWalletName] = useState('');
   const [walletError, setWalletError] = useState('');
   const [walletSuccess, setWalletSuccess] = useState('');
+  const [walletApi, setWalletApi] = useState();
   const [newNote, setNewNote] = useState({
     title: '',
     noteText: '',
@@ -39,7 +41,10 @@ function TaskView() {
   const [transactionError, setTransactionError] = useState('');
   const navigate = useNavigate();
   const token = localStorage.getItem('authToken');
-
+  const [provider] = useState(() => new Blockfrost({
+    network: 'cardano-preview',
+    projectId: import.meta.env.VITE_BLOCKFROST_PROJECT_ID,
+  }))
   // Check for previously connected wallet on component mount
   useEffect(() => {
     const storedWalletName = localStorage.getItem('connectedWallet');
@@ -79,26 +84,12 @@ function TaskView() {
           try {
             // This is the CIP-0030 enable() method that asks for permission
             const api = await window.cardano[wallet].enable();
-            
+            setWalletApi(api);
             if (api) {
               // Get the wallet's unused addresses
-              const unusedAddresses = await api.getUnusedAddresses();
-              if (unusedAddresses && unusedAddresses.length > 0) {
-                const address = unusedAddresses[0];
-                
-                // Store wallet info
-                setWalletName(wallet);
-                const bech32 = await hexToBech32(address);
-                setWalletAddress(bech32);
-                localStorage.setItem('walletAddress', bech32);
-                setWalletConnected(true);
-                localStorage.setItem('connectedWallet', wallet);
-                
-                setWalletSuccess(`✅ Connected to ${wallet.charAt(0).toUpperCase() + wallet.slice(1)} wallet! Address: ${address.substring(0, 20)}...`);
-                connected = true;
-                connectedWalletName = wallet;
-                break;
-              }
+              const walletAddress = await api.getChangeAddress();
+              console.log("Wallet Address: ",walletAddress);
+              setWalletAddress(walletAddress);
             }
           } catch (error) {
             // User rejected permission or other error, try next wallet
@@ -228,6 +219,19 @@ function TaskView() {
     postNote(newNote);
   };
 
+  const handleSubmitTransaction = async () =>{
+    if(walletApi){
+      try{
+        const wallet = new WebWallet(walletApi)
+        const blaze= await Blaze.from(provider,wallet)
+        console.log("Blaze instance created!", blaze);
+      }
+      catch(error){
+        console.error("Error submitting transaction:",error);
+      }
+    }
+  }
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === "userId") {
@@ -329,6 +333,19 @@ function TaskView() {
       onClick={handleAddTaskClick}
     >
       Add Note
+    </Button>
+    <Button
+      variant="contained"
+      startIcon={<AddIcon />}
+      sx={{
+        backgroundColor: "#EC8305",
+        color: "white",
+        fontFamily: "Poppins",
+        textTransform: "none",
+      }}
+      onClick={handleSubmitTransaction}
+    >
+      Test Transaction
     </Button>
   </Box>
 </Box>
