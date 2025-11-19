@@ -1,6 +1,6 @@
 import * as React from 'react';
 import initCardanoWasm from "@emurgo/cardano-serialization-lib-browser/cardano_serialization_lib_bg.wasm?init";
-import {Blockfrost, WebWallet, Blaze} from '@blaze-cardano/sdk'
+import {Blockfrost, WebWallet, Blaze, Core} from '@blaze-cardano/sdk'
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -225,6 +225,26 @@ function TaskView() {
         const wallet = new WebWallet(walletApi)
         const blaze= await Blaze.from(provider,wallet)
         console.log("Blaze instance created!", blaze);
+        const bench32Address = Core.Address.fromBytes(Buffer.from(walletAddress, 'hex')).toBech32;
+        console.log("Recipient Address (bech32): ",bench32Address);
+        const tx = await blaze
+        .newTransaction()
+        .payLovelace(
+            Core.Address.fromBech32(
+                "addr_test1qq3ets7dxg8aure96num4zz7asrmy9nr8kgsy6t3jfdhv9yrv4w2has733mkknfv0q9ugh3vum305c5ywd65gmg5sn0qncs98a",
+            ),
+            1_000_000n,
+        )
+        .complete();
+        console.log("Transaction: ",tx.toCbor());
+        const signexTx = await blaze.signTransaction(tx);
+
+        // Step #7
+        // Submit the transaction to the blockchain network
+        const txId = await blaze.provider.postTransactionToChain(signexTx);
+
+        // Optional: Print the transaction ID
+        console.log("Transaction ID", txId);
       }
       catch(error){
         console.error("Error submitting transaction:",error);
