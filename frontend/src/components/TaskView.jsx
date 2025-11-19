@@ -6,7 +6,9 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import WalletIcon from '@mui/icons-material/Wallet';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert } from '@mui/material';
 import Logo from "../assets/Logo1.png";
 
 function TaskView() {
@@ -17,8 +19,13 @@ function TaskView() {
   const [note, setNote] = useState([]);
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [filterStatus, setFilterStatus] = useState('All');
-  const [sortOrder, setSortOrder] = useState('asc'); // Added state for sorting order
+  const [sortOrder, setSortOrder] = useState('asc');
   const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState('');
+  const [walletName, setWalletName] = useState('');
+  const [walletError, setWalletError] = useState('');
+  const [walletSuccess, setWalletSuccess] = useState('');
   const [newNote, setNewNote] = useState({
     title: '',
     noteText: '',
@@ -28,6 +35,76 @@ function TaskView() {
   });
   const navigate = useNavigate();
   const token = localStorage.getItem('authToken');
+
+  // Check for previously connected wallet on component mount
+  useEffect(() => {
+    const storedWalletName = localStorage.getItem('connectedWallet');
+    const storedWalletAddress = localStorage.getItem('walletAddress');
+    if (storedWalletName && storedWalletAddress) {
+      setWalletName(storedWalletName);
+      setWalletAddress(storedWalletAddress);
+      setWalletConnected(true);
+    }
+  }, []);
+
+  // Function to sync/connect wallet using CIP-0030 standard
+  const handleSyncWallet = async () => {
+    try {
+      setWalletError('');
+      setWalletSuccess('');
+
+      // Check if Cardano object exists
+      if (!window.cardano) {
+        setWalletError('Cardano object not found. Please ensure a Cardano wallet extension is installed.');
+        return;
+      }
+
+      // Try to connect to Lace wallet first, then fallback to other wallets
+      const walletOptions = ['lace', 'eternl', 'flint', 'nami'];
+      let connected = false;
+      let connectedWalletName = '';
+
+      for (const wallet of walletOptions) {
+        if (window.cardano[wallet]) {
+          try {
+            // This is the CIP-0030 enable() method that asks for permission
+            const api = await window.cardano[wallet].enable();
+            
+            if (api) {
+              // Get the wallet's unused addresses
+              const unusedAddresses = await api.getUnusedAddresses();
+              if (unusedAddresses && unusedAddresses.length > 0) {
+                const address = unusedAddresses[0];
+                
+                // Store wallet info
+                setWalletName(wallet);
+                setWalletAddress(address);
+                setWalletConnected(true);
+                localStorage.setItem('connectedWallet', wallet);
+                localStorage.setItem('walletAddress', address);
+                
+                setWalletSuccess(`✅ Connected to ${wallet.charAt(0).toUpperCase() + wallet.slice(1)} wallet! Address: ${address.substring(0, 20)}...`);
+                connected = true;
+                connectedWalletName = wallet;
+                break;
+              }
+            }
+          } catch (error) {
+            // User rejected permission or other error, try next wallet
+            console.log(`Could not connect to ${wallet}:`, error.message);
+            continue;
+          }
+        }
+      }
+
+      if (!connected) {
+        setWalletError('No Cardano wallet found or permission denied. Please install Lace, Eternl, Flint, or Nami wallet extension.');
+      }
+    } catch (error) {
+      console.error('Error syncing wallet:', error);
+      setWalletError(`Error: ${error.message || 'Failed to sync wallet'}`);
+    }
+  };
 
   useEffect(() => {
   const fetchTasks = async () => {
@@ -131,6 +208,18 @@ function TaskView() {
       </Box>
 
       <Box flex="1" padding={4}>
+      {/* Wallet Status Alert */}
+      {walletError && (
+        <Alert severity="error" sx={{ marginBottom: 2 }} onClose={() => setWalletError('')}>
+          {walletError}
+        </Alert>
+      )}
+      {walletSuccess && (
+        <Alert severity="success" sx={{ marginBottom: 2 }} onClose={() => setWalletSuccess('')}>
+          {walletSuccess}
+        </Alert>
+      )}
+
       <Box display="flex" justifyContent="space-between" alignItems="center">
   <IconButton onClick={() => navigate("/todos")}>
     <ArrowBackIcon sx={{ color: "#091057" }} />
@@ -138,7 +227,21 @@ function TaskView() {
   <Typography sx={{ fontFamily: "Poppins", fontSize: "24px", fontWeight: "bold", color: "primary" }}>
     List
   </Typography>
-  <Box sx={{ marginLeft: "auto" }}>
+  <Box sx={{ marginLeft: "auto", display: "flex", gap: 2 }}>
+    <Button
+      variant="contained"
+      startIcon={walletConnected ? <CheckCircleIcon /> : <WalletIcon />}
+      sx={{
+        backgroundColor: walletConnected ? "#4CAF50" : "#2196F3",
+        color: "white",
+        fontFamily: "Poppins",
+        textTransform: "none",
+      }}
+      onClick={handleSyncWallet}
+      title={walletConnected ? `Connected to ${walletName}` : "Click to sync wallet"}
+    >
+      {walletConnected ? `Wallet: ${walletName}` : "Sync to Wallet"}
+    </Button>
     <Button
       variant="contained"
       startIcon={<AddIcon />}
