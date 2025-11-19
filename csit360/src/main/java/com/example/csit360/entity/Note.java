@@ -24,6 +24,12 @@ public class Note {
     private String noteText;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    // Blockchain fields
+    private String transactionHash;
+    private Boolean isBlockchainVerified;
+    private Long blockHeight;
+    private String ipfsHash;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "userId")
@@ -89,5 +95,36 @@ public class Note {
         this.user = user;
     }
 
-    
+    public String getTransactionHash() {
+        return transactionHash;
+    }
+
+    public void setTransactionHash(String transactionHash) {
+        this.transactionHash = transactionHash;
+    }
+
+    public Boolean getIsBlockchainVerified() {
+        return isBlockchainVerified;
+    }
+
+    public void setIsBlockchainVerified(Boolean isBlockchainVerified) {
+        this.isBlockchainVerified = isBlockchainVerified;
+    }
+
+    public Long getBlockHeight() {
+        return blockHeight;
+    }
+
+    public void setBlockHeight(Long blockHeight) {
+        this.blockHeight = blockHeight;
+    }
+
+    public String getIpfsHash() {
+        return ipfsHash;
+    }
+
+    public void setIpfsHash(String ipfsHash) {
+        this.ipfsHash = ipfsHash;
+    }
 }
+
