@@ -146,6 +146,9 @@ function TaskView() {
         return null;
       }
 
+      // Debug: print wallet address used
+      console.log('Blockchain walletAddress:', walletAddr);
+
       // Call appropriate blockchain endpoint based on action
       let endpoint = '';
       let payload = {

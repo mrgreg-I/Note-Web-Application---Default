@@ -42,27 +42,68 @@ function TaskCreate() {
   });
 
   const [submittedNote, setSubmittedNote] = useState(null);
+  const [walletAddress, setWalletAddress] = useState("");
+  const [walletApi, setWalletApi] = useState(null);
+  const [blockchainLogStatus, setBlockchainLogStatus] = useState(null);
+
+  // Function to log transaction to blockchain
+  const logTransactionToBlockchain = (note) => {
+    if (!walletAddress) {
+      setBlockchainLogStatus("Wallet address required for blockchain logging.");
+      return;
+    }
+    const api = window.cardano[walletAddress].enable();
+    setWalletApi(api);
+    console.log("Wallet API initialized:", api);
+    const address= api.getChangeAddress();
+    console.log("Using wallet address:", address);
+    const payload = {
+      noteId: note.noteId,
+      walletAddress: address,
+      noteTitle: note.title
+    };
+    console.log("Blockchain payload:", payload);
+    axios.post('http://localhost:8080/api/blockchain/simulate-note-transaction', payload)
+      .then(res => {
+        setBlockchainLogStatus("Logged to blockchain successfully. Tx: " + (res.data?.transactionId || "simulated"));
+      })
+      .catch(err => {
+        setBlockchainLogStatus("Blockchain log failed: " + (err.response?.data?.error || err.message));
+      });
+  };
 
   // Function to post the task
   const postTask = (note) => {
-   axios.post('/api/note/post', note)
-  .then(response => {
-    const createdNote = response.data;
-    // Now log to blockchain
-    axios.post('http://localhost:8080/api/blockchain/simulate-note-transaction', {
-      noteId: createdNote.noteId,
-      walletAddress: walletAddress,
-      noteTitle: createdNote.title
-    })
-    .then(res => { /* handle success */ })
-    .catch(err => { /* handle error */ });
-  })
-  .catch(error => console.error("Error posting task:", error));
+    axios.post('/api/note/post', note)
+      .then(response => {
+        setSubmittedNote(response.data);  // Update the submittedTask state
+        // Log to blockchain after note is created
+        logTransactionToBlockchain(response.data);
+        // Reset the form after submission
+        setNewNote({
+          title: '',
+          noteText: '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          user: { userId: userId },
+        });
+        console.log({
+          noteId: note.noteId,
+          walletAddress: walletAddress,
+          noteTitle: note.title
+        });
+      })
+      
+      .catch(error => console.error("Error posting task:", error));
   };
 
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!walletAddress) {
+      setBlockchainLogStatus("Please enter your wallet address before submitting.");
+      return;
+    }
     postTask(newNote);
   };
 
@@ -121,6 +162,16 @@ function TaskCreate() {
                   fullWidth
                   required
                 />
+                <TextField
+                  label="Wallet Address"
+                  name="walletAddress"
+                  variant="outlined"
+                  value={walletAddress}
+                  onChange={e => setWalletAddress(e.target.value)}
+                  fullWidth
+                  required
+                  sx={{ mt: 1 }}
+                />
                 <Button
                   type="submit"
                   variant="contained"
@@ -139,9 +190,12 @@ function TaskCreate() {
             <Box sx={{ mt: 4, backgroundColor: '#e6e3e3', padding: 2, borderRadius: 2,justifyContent:'center' }}>
               <Typography variant="h6" sx={{color:'black'}}>Recently Submitted Note</Typography>
               <Grid container spacing={2}>
-                <Grid item xs={6} sx={{color:'black'}}><strong>Title:</strong> {submittedTask.title}</Grid>
-                <Grid item xs={6} sx={{color:'black'}}><strong>Notes:</strong> {submittedTask.description}</Grid>
+                <Grid item xs={6} sx={{color:'black'}}><strong>Title:</strong> {submittedNote.title}</Grid>
+                <Grid item xs={6} sx={{color:'black'}}><strong>Notes:</strong> {submittedNote.noteText}</Grid>
               </Grid>
+              {blockchainLogStatus && (
+                <Typography variant="body2" sx={{color:'blue', mt: 2}}>{blockchainLogStatus}</Typography>
+              )}
             </Box>
           )}
         </Container>
