@@ -134,71 +134,49 @@ function TaskView() {
     setOpenAddDialog(false);
   };
 
-  // Function to log transaction to blockchain
-  const logTransactionToBlockchain = async (noteId, noteTitle, actionType) => {
-    try {
-      const walletAddr = localStorage.getItem('walletAddress');
-      const wallet = localStorage.getItem('connectedWallet');
-      
-      if (!walletAddr || !wallet) {
-        console.log('Wallet not connected - logging locally only');
-        return null;
-      }
-
-      // Debug: print wallet address used
-      console.log('Blockchain walletAddress:', walletAddr);
-
-      // Call appropriate blockchain endpoint based on action
-      let endpoint = '';
-      let payload = {
-        walletAddress: walletAddr,
-        noteId: noteId,
-        noteTitle: noteTitle
-      };
-
-      if (actionType === 'CREATE') {
-        endpoint = '/api/blockchain/simulate-note-transaction';
-      } else if (actionType === 'UPDATE') {
-        endpoint = '/api/blockchain/simulate-note-update-transaction';
-      } else if (actionType === 'DELETE') {
-        endpoint = '/api/blockchain/simulate-note-deletion-transaction';
-      }
-
-      const response = await axios.post(`http://localhost:8080${endpoint}`, payload);
-      console.log(`${actionType} transaction logged:`, response.data);
-      return response.data;
-    } catch (error) {
-      console.error('Error logging to blockchain:', error);
-      setTransactionError(`Blockchain logging failed: ${error.message}`);
-      return null;
-    }
-  };
 
   const handleCloseTransactionDialog = () => {
     setShowTransactionDialog(false);
     setTransactionInfo(null);
     setTransactionError('');
   };
+  const formatLovelaceToAda = (lovelaceAmount) => {
+    // Ensure the input is treated as a BigInt
+    const lovelace = BigInt(lovelaceAmount);
+    
+    // The divisor for 1 ADA
+    const LOVELACE_PER_ADA = 1_000_000n;
+    
+    // Calculate ADA value (integer part)
+    const ada = lovelace / LOVELACE_PER_ADA;
+    
+    // Calculate the remainder (decimal part, in Lovelace)
+    const remainder = lovelace % LOVELACE_PER_ADA;
+    
+    // Format the remainder to ensure it has 6 digits (for .000000)
+    let fractionalPart = remainder.toString().padStart(6, '0');
+    
+    // Truncate to two significant digits (e.g., "000000" -> "00", "500000" -> "50")
+    // Use Number() to parse and localeString for proper decimal/comma handling
+    const formattedAda = (Number(ada.toString() + "." + fractionalPart)
+        .toFixed(2)); // Display 2 decimal places
 
+    return `${formattedAda} ADA`;
+};
   const postNote = async (note) => {
     try {
       const response = await axios.post('/api/note/post', note);
       const newNote = response.data;
-      
-      // Log creation to blockchain if wallet is connected
-      const txInfo = await logTransactionToBlockchain(newNote.noteId, newNote.title, 'CREATE');
-      
-      if (txInfo) {
+        const txResult = await handleSubmitTransaction();
         setTransactionInfo({
           type: 'CREATE',
           noteTitle: newNote.title,
-          transactionId: txInfo.transactionId,
-          network: txInfo.network,
-          fee: txInfo.fee,
+          transactionId: txResult.transactionId,
+          network: provider.network,
+          fee: txResult.amount,
           wallet: localStorage.getItem('connectedWallet')
         });
         setShowTransactionDialog(true);
-      }
       
       setNote(prevTasks => [...prevTasks, newNote]);
       setNewNote({
@@ -210,7 +188,7 @@ function TaskView() {
       });
     } catch (error) {
       console.error("Error posting task:", error);
-      setTransactionError("Error creating task: " + error.message);
+      
     }
   };
 
@@ -220,6 +198,9 @@ function TaskView() {
   };
 
   const handleSubmitTransaction = async () =>{
+    // Define the Lovelace amount here, or pass it as a parameter
+    const lovelaceAmount = 1_000_000n; 
+    
     if(walletApi){
       try{
         const wallet = new WebWallet(walletApi)
@@ -233,7 +214,7 @@ function TaskView() {
             Core.Address.fromBech32(
                 "addr_test1qq3ets7dxg8aure96num4zz7asrmy9nr8kgsy6t3jfdhv9yrv4w2has733mkknfv0q9ugh3vum305c5ywd65gmg5sn0qncs98a",
             ),
-            1_000_000n,
+            lovelaceAmount, // Use defined variable
         )
         .complete();
         console.log("Transaction: ",tx.toCbor());
@@ -245,12 +226,22 @@ function TaskView() {
 
         // Optional: Print the transaction ID
         console.log("Transaction ID", txId);
+        
+        // SUCCESS PATH: Return the transaction object
+        return { 
+            transactionId: txId, 
+            amount: lovelaceAmount, 
+        };
       }
       catch(error){
         console.error("Error submitting transaction:",error);
+        // ERROR PATH: Return a clear value (like null) instead of nothing
+        return null; 
       }
     }
-  }
+    // WALLET NOT CONNECTED PATH: Return a clear value instead of nothing
+    return null; 
+}
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -452,7 +443,7 @@ function TaskView() {
               </Box>
               <Box>
                 <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Fee:</Typography>
-                <Typography>{transactionInfo.fee}</Typography>
+                <Typography>{formatLovelaceToAda(transactionInfo.fee)}</Typography>
               </Box>
               <Box>
                 <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Wallet:</Typography>
