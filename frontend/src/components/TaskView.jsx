@@ -186,6 +186,8 @@ function TaskView() {
         updatedAt: new Date().toISOString(),
         user: { userId: userId }
       });
+      const res = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
+      setNote(res.data || []);
     } catch (error) {
       console.error("Error posting task:", error);
       
@@ -311,13 +313,10 @@ function TaskView() {
       )}
 
       <Box display="flex" justifyContent="space-between" alignItems="center">
-  <IconButton onClick={() => navigate("/todos")}>
-    <ArrowBackIcon sx={{ color: "#091057" }} />
-  </IconButton>
   <Typography sx={{ fontFamily: "Poppins", fontSize: "24px", fontWeight: "bold", color: "primary" }}>
-    List
+    Notes
   </Typography>
-  <Box sx={{ marginLeft: "auto", display: "flex", gap: 2 }}>
+  <Box sx={{ marginLeft: "auto", display: "flex", gap: 2 , marginBottom: 2}}>
     <Button
       variant="contained"
       startIcon={walletConnected ? <CheckCircleIcon /> : <WalletIcon />}
@@ -344,19 +343,6 @@ function TaskView() {
       onClick={handleAddTaskClick}
     >
       Add Note
-    </Button>
-    <Button
-      variant="contained"
-      startIcon={<AddIcon />}
-      sx={{
-        backgroundColor: "#EC8305",
-        color: "white",
-        fontFamily: "Poppins",
-        textTransform: "none",
-      }}
-      onClick={handleSubmitTransaction}
-    >
-      Test Transaction
     </Button>
   </Box>
 </Box>
