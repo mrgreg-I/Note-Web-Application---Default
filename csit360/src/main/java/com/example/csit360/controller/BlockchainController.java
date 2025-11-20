@@ -68,8 +68,6 @@ public class BlockchainController {
             Long noteId = null;
             String walletAddress = null;
             String noteTitle = null;
-            
-            // Parse payload
             if (payload.get("noteId") instanceof Integer) {
                 noteId = ((Integer) payload.get("noteId")).longValue();
             } else if (payload.get("noteId") instanceof Long) {
@@ -79,14 +77,10 @@ public class BlockchainController {
             }
             walletAddress = (String) payload.get("walletAddress");
             noteTitle = (String) payload.get("noteTitle");
-
-            // Check if wallet address is null or invalid
-            if (walletAddress == null || !isValidCardanoAddress(walletAddress)) {
+            if (walletAddress == null || !blockchainService.isValidCardanoAddress(walletAddress)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(Map.of("error", "Invalid Cardano address format"));
             }
-
-            // Simulate transaction
             Map<String, Object> transaction = blockchainService.simulateNoteTransaction(noteId, walletAddress, noteTitle);
             return ResponseEntity.ok(transaction);
         } catch (Exception e) {
@@ -152,24 +146,5 @@ public class BlockchainController {
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("Blockchain service is running");
-    }
-    
-    private boolean isValidCardanoAddress(String address) {
-        if (address == null || address.isEmpty()) {
-            return false;
-        }
-        
-        // Check if the address is a valid Bech32 address
-        if (address.startsWith("addr") && address.matches("^addr[a-zA-Z0-9]{98,}$")) {
-            return true; // Bech32 address validation
-        }
-        
-        // Check if the address is a valid Hexadecimal address
-        return isValidHexAddress(address); // Hex address validation
-    }
-
-    private boolean isValidHexAddress(String address) {
-        // Hexadecimal address validation (usually 56 or more characters in length)
-        return address.matches("[0-9a-fA-F]{56,}") && address.length() >= 56;
     }
 }
