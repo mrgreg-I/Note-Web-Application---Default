@@ -20,7 +20,7 @@ function TaskView() {
 
   const [note, setNote] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const notesPerPage = 10;
+  const notesPerPage = 20;
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [filterStatus, setFilterStatus] = useState('All');
   const [sortOrder, setSortOrder] = useState('asc');
@@ -452,6 +452,8 @@ function TaskView() {
               </Box>
             </Box>
           )}
+
+
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseTransactionDialog} sx={{ color: "#091057" }}>

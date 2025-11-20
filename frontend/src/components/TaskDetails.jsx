@@ -169,6 +169,7 @@ const updateTask = async (note) => {
         setTransactionInfo({
           type: 'UPDATE',
           noteTitle: note.title,
+          noteText: note.noteText,
           transactionId: txResult.transactionId,
           network: provider.network,
           fee: txResult.amount,
@@ -483,8 +484,12 @@ const handleUpdateChange = (e) => {
           {transactionInfo && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Box>
-                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Task:</Typography>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Note Title:</Typography>
                 <Typography>{transactionInfo.noteTitle}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Note Text:</Typography>
+                <Typography>{transactionInfo.noteText}</Typography>
               </Box>
               <Box>
                 <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Action:</Typography>
