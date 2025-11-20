@@ -10,7 +10,7 @@ import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import WalletIcon from '@mui/icons-material/Wallet';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert } from '@mui/material';
+import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert, Pagination } from '@mui/material';
 import Logo from "../assets/Logo1.png";
 
 function TaskView() {
@@ -19,6 +19,8 @@ function TaskView() {
   console.log('userId from localStorage:', userId);
 
   const [note, setNote] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const notesPerPage = 10;
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [filterStatus, setFilterStatus] = useState('All');
   const [sortOrder, setSortOrder] = useState('asc');
@@ -118,7 +120,9 @@ function TaskView() {
 
     try {
       const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
-      setNote(response.data || []);
+      // Sort notes so newest is first
+      const sortedNotes = (response.data || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setNote(sortedNotes);
     } catch (error) {
       console.error('Error fetching note:', error);
     }
@@ -179,7 +183,7 @@ function TaskView() {
         });
         setShowTransactionDialog(true);
       
-      setNote(prevTasks => [...prevTasks, newNote]);
+      setNote(prevTasks => [newNote, ...prevTasks]); // Newest first
       setNewNote({
         title: '',
         noteText: '',
@@ -350,20 +354,30 @@ function TaskView() {
               
         {/* Task Cards */}
         <Box display="flex" gap={3} flexWrap="wrap" >
-        {note.map((task) => (
-  <Link to={`/taskdetails`} state={{ noteId: task.noteId }} onClick={(event) => event.stopPropagation()} style={{textDecoration:'none'}} key={task.noteId}>
-    <Box width="300px" padding={2} bgcolor="#F1F0E8" borderRadius="8px" boxShadow={2} sx={{ cursor: "pointer" }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Typography variant="h6" fontFamily="Poppins" fontWeight="bold" color="#091057">
-          {task.title}
-        </Typography>
-      </Box>
-      <Typography color="#EC8305" fontFamily="Poppins" fontSize="14px" marginTop={1}>
-        {task.noteText}    
-      </Typography>
-    </Box>
-  </Link>
-))}
+        {/* Pagination logic */}
+        {note.slice((currentPage - 1) * notesPerPage, currentPage * notesPerPage).map((task) => (
+          <Link to={`/taskdetails`} state={{ noteId: task.noteId }} onClick={(event) => event.stopPropagation()} style={{textDecoration:'none'}} key={task.noteId}>
+            <Box width="300px" padding={2} bgcolor="#F1F0E8" borderRadius="8px" boxShadow={2} sx={{ cursor: "pointer" }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6" fontFamily="Poppins" fontWeight="bold" color="#091057">
+                  {task.title}
+                </Typography>
+              </Box>
+              <Typography color="#EC8305" fontFamily="Poppins" fontSize="14px" marginTop={1}>
+                {task.noteText}    
+              </Typography>
+            </Box>
+          </Link>
+        ))}
+        </Box>
+        {/* Pagination controls */}
+        <Box display="flex" justifyContent="center" mt={4}>
+          <Pagination
+            count={Math.ceil(note.length / notesPerPage)}
+            page={currentPage}
+            onChange={(_, value) => setCurrentPage(value)}
+            color="primary"
+          />
         </Box>
       </Box>
 
