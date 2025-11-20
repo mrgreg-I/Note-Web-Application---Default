@@ -5,7 +5,7 @@ import Typography from '@mui/material/Typography';
 import { TextField, Button, Container, Box, Paper, IconButton, Alert } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import EditIcon from '@mui/icons-material/Edit';
+import {Blockfrost, WebWallet, Blaze, Core} from '@blaze-cardano/sdk'
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
@@ -27,6 +27,12 @@ function TaskUpdate() {
   const [isDialogOpenUpdate, setIsDialogOpenUpdate] = useState(false);
   const [confirm, setConfirm] = useState(false);
   const [selectedNote, setSelectedNote] = useState(null);
+  const [walletAddress, setWalletAddress] = useState('');
+  const [walletApi, setWalletApi] = useState();
+  const [provider] = useState(() => new Blockfrost({
+      network: 'cardano-preview',
+      projectId: import.meta.env.VITE_BLOCKFROST_PROJECT_ID,
+    }))
   const [currentData, setCurrentData] = useState({
     noteId: '',
     title: '',
@@ -69,6 +75,10 @@ console.log('noteId from location.state:', noteId);
   const fetchData = async () => {
     if (noteId) {
       try {
+        const api = await window.cardano['lace'].enable();
+        setWalletApi(api);
+        console.log("WalletAPI: ",api);
+        setWalletAddress(localStorage.getItem('walletAddress'));
         const taskResponse = await axios.get(`/api/note/get/${noteId}`);
         setCurrentData(taskResponse.data);
         setUpdateData(taskResponse.data);
@@ -80,16 +90,91 @@ console.log('noteId from location.state:', noteId);
   };
   fetchData();
   }, [noteId]);
+const formatLovelaceToAda = (lovelaceAmount) => {
+    // Ensure the input is treated as a BigInt
+    const lovelace = BigInt(lovelaceAmount);
+    
+    // The divisor for 1 ADA
+    const LOVELACE_PER_ADA = 1_000_000n;
+    
+    // Calculate ADA value (integer part)
+    const ada = lovelace / LOVELACE_PER_ADA;
+    
+    // Calculate the remainder (decimal part, in Lovelace)
+    const remainder = lovelace % LOVELACE_PER_ADA;
+    
+    // Format the remainder to ensure it has 6 digits (for .000000)
+    let fractionalPart = remainder.toString().padStart(6, '0');
+    
+    // Truncate to two significant digits (e.g., "000000" -> "00", "500000" -> "50")
+    // Use Number() to parse and localeString for proper decimal/comma handling
+    const formattedAda = (Number(ada.toString() + "." + fractionalPart)
+        .toFixed(2)); // Display 2 decimal places
 
+    return `${formattedAda} ADA`;
+};
 // start of update functions
+const handleSubmitTransaction = async () =>{
+    // Define the Lovelace amount here, or pass it as a parameter
+    const lovelaceAmount = 1_000_000n; 
+    
+    if(walletApi){
+      try{
+        const wallet = new WebWallet(walletApi)
+        const blaze= await Blaze.from(provider,wallet)
+        console.log("Blaze instance created!", blaze);
+        const bench32Address = Core.Address.fromBytes(Buffer.from(walletAddress, 'hex')).toBech32;
+        console.log("Recipient Address (bech32): ",bench32Address);
+        const tx = await blaze
+        .newTransaction()
+        .payLovelace(
+            Core.Address.fromBech32(
+                "addr_test1qq3ets7dxg8aure96num4zz7asrmy9nr8kgsy6t3jfdhv9yrv4w2has733mkknfv0q9ugh3vum305c5ywd65gmg5sn0qncs98a",
+            ),
+            lovelaceAmount, // Use defined variable
+        )
+        .complete();
+        console.log("Transaction: ",tx.toCbor());
+        const signexTx = await blaze.signTransaction(tx);
 
+        // Step #7
+        // Submit the transaction to the blockchain network
+        const txId = await blaze.provider.postTransactionToChain(signexTx);
+
+        // Optional: Print the transaction ID
+        console.log("Transaction ID", txId);
+        
+        // SUCCESS PATH: Return the transaction object
+        return { 
+            transactionId: txId, 
+            amount: lovelaceAmount, 
+        };
+      }
+      catch(error){
+        console.error("Error submitting transaction:",error);
+        // ERROR PATH: Return a clear value (like null) instead of nothing
+        return null; 
+      }
+    }
+    // WALLET NOT CONNECTED PATH: Return a clear value instead of nothing
+    return null; 
+}
 
 const updateTask = async (note) => {
   try {
     const response = await axios.put(`/api/note/put/${note.noteId}`, note);
 
     console.log("Note updated successfully:", response.data);
-
+    const txResult = await handleSubmitTransaction();
+        setTransactionInfo({
+          type: 'UPDATE',
+          noteTitle: note.title,
+          transactionId: txResult.transactionId,
+          network: provider.network,
+          fee: txResult.amount,
+          wallet: localStorage.getItem('connectedWallet')
+        });
+        setShowTransactionDialog(true);
     // Update the task in currentData to trigger re-render
     setCurrentData(prevState => ({
       ...prevState,
@@ -386,46 +471,52 @@ const handleUpdateChange = (e) => {
 
           {/* Transaction Confirmation Dialog */}
           <Dialog open={showTransactionDialog} onClose={handleCloseTransactionDialog} maxWidth="sm" fullWidth>
-            <DialogTitle sx={{ bgcolor: "#091057", color: "white" }}>
-              ✅ {transactionInfo?.type} Transaction Logged
-            </DialogTitle>
-            <DialogContent sx={{ mt: 2 }}>
-              {transactionError && <Alert severity="error">{transactionError}</Alert>}
-              {transactionInfo && (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <Box>
-                    <Typography variant="body2" sx={{ color: '#666', fontWeight: 'bold' }}>Action Type</Typography>
-                    <Typography variant="body1">{transactionInfo.type}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" sx={{ color: '#666', fontWeight: 'bold' }}>Task</Typography>
-                    <Typography variant="body1">{transactionInfo.taskTitle}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" sx={{ color: '#666', fontWeight: 'bold' }}>Transaction ID</Typography>
-                    <Typography variant="body1" sx={{ fontSize: '0.85rem', wordBreak: 'break-all' }}>{transactionInfo.transactionId}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" sx={{ color: '#666', fontWeight: 'bold' }}>Network</Typography>
-                    <Typography variant="body1">{transactionInfo.network}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" sx={{ color: '#666', fontWeight: 'bold' }}>Fee</Typography>
-                    <Typography variant="body1">{transactionInfo.fee}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="body2" sx={{ color: '#666', fontWeight: 'bold' }}>Wallet Used</Typography>
-                    <Typography variant="body1" sx={{ fontSize: '0.85rem', wordBreak: 'break-all' }}>{transactionInfo.wallet}</Typography>
-                  </Box>
-                </Box>
-              )}
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleCloseTransactionDialog} variant="contained" sx={{ bgcolor: "#091057" }}>
-                Close
-              </Button>
-            </DialogActions>
-          </Dialog>
+        <DialogTitle sx={{ bgcolor: "#091057", color: "white", fontFamily: "Poppins", fontWeight: "bold" }}>
+          ✅ {transactionInfo?.type} Transaction Logged
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
+          {transactionError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {transactionError}
+            </Alert>
+          )}
+          {transactionInfo && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Task:</Typography>
+                <Typography>{transactionInfo.noteTitle}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Action:</Typography>
+                <Typography>{transactionInfo.type}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Transaction ID:</Typography>
+                <Typography sx={{ wordBreak: "break-all", fontFamily: "monospace" }}>
+                  {transactionInfo.transactionId}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Network:</Typography>
+                <Typography>{transactionInfo.network}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Fee:</Typography>
+                <Typography>{formatLovelaceToAda(transactionInfo.fee)}</Typography>
+              </Box>
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Wallet:</Typography>
+                <Typography>{transactionInfo.wallet}</Typography>
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseTransactionDialog} sx={{ color: "#091057" }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
           
           <Box
         bgcolor="#091057"

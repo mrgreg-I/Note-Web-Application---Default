@@ -85,6 +85,7 @@ function TaskView() {
             // This is the CIP-0030 enable() method that asks for permission
             const api = await window.cardano[wallet].enable();
             setWalletApi(api);
+            console.log("WalletAPI: ",api);
             if (api) {
               // Get the wallet's unused addresses
               const walletAddress = await api.getChangeAddress();

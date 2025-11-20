@@ -86,35 +86,6 @@ function TaskCreate() {
   // ---------------------------------------------------------
   // 🧾 Log Task Creation to Blockchain Simulation API
   // ---------------------------------------------------------
-  const logTransactionToBlockchain = async (note) => {
-    try {
-      if (!walletAddress) {
-        setBlockchainLogStatus("Wallet address required for blockchain logging.");
-        return;
-      }
-
-      const payload = {
-        noteId: note.noteId,
-        walletAddress,
-        noteTitle: note.title
-      };
-
-      const res = await axios.post(
-        "http://localhost:8080/api/blockchain/simulate-note-transaction",
-        payload
-      );
-
-      setBlockchainLogStatus(
-        "Logged to blockchain successfully. Tx: " +
-        (res.data?.transactionId || "simulated")
-      );
-
-    } catch (err) {
-      setBlockchainLogStatus(
-        "Blockchain log failed: " + (err.response?.data?.error || err.message)
-      );
-    }
-  };
 
   // ---------------------------------------------------------
   // 📝 Post the Note to Backend
@@ -126,7 +97,6 @@ function TaskCreate() {
       setSubmittedNote(response.data);
 
       // Log to blockchain after saving note
-      await logTransactionToBlockchain(response.data);
 
       // Reset form
       setNewNote({
