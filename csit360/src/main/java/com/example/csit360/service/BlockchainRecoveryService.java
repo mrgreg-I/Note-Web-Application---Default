@@ -1,9 +1,7 @@
 package com.example.csit360.service;
 
 import com.example.csit360.entity.Note;
-import com.example.csit360.entity.User;
 import com.example.csit360.repository.NoteRepository;
-import com.example.csit360.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,9 +27,6 @@ public class BlockchainRecoveryService {
 
     @Autowired
     private NoteRepository noteRepository;
-
-    @Autowired
-    private UserRepository userRepository;
 
     @Autowired
     private BlockfrostService blockfrostService;
@@ -140,24 +135,6 @@ public class BlockchainRecoveryService {
             LocalDateTime now = LocalDateTime.now();
             note.setCreatedAt(now);
             note.setUpdatedAt(now);
-
-            // Attempt to find or create user associated with wallet
-            List<User> users = userRepository.findAll();
-            Optional<User> walletUser = users.stream()
-                .filter(u -> walletAddress.equals(u.getWalletAddress()))
-                .findFirst();
-
-            if (walletUser.isPresent()) {
-                note.setUser(walletUser.get());
-            } else {
-                logger.warning("⚠️ No user found for wallet " + walletAddress + ". Creating default user.");
-                // Create a default user for recovered notes if none exists
-                User newUser = new User();
-                newUser.setUsername("recovered_" + walletAddress.substring(0, 8));
-                newUser.setWalletAddress(walletAddress);
-                User savedUser = userRepository.save(newUser);
-                note.setUser(savedUser);
-            }
 
             logger.info("📝 Reconstructed note from metadata: title='" + title + "', action=" + action);
 

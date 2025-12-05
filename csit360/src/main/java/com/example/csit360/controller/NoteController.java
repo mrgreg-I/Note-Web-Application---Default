@@ -58,7 +58,7 @@ public class NoteController {
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
             } else {
                 // Fallback to regular save without blockchain
-                Note savedNote = noteServ.postNote(note, note.getUser().getUserId());
+                Note savedNote = noteServ.postNote(note);
                 Map<String, Object> response = new java.util.HashMap<>();
                 response.put("note", savedNote);
                 response.put("status", "saved");
@@ -127,45 +127,6 @@ public class NoteController {
         }
     }
 
-    //Get ToDoList by UserId
-    @GetMapping("/tasks")
-    public List<Note> getToDosByUserId(@RequestParam Long userId) {
-    return noteServ.findByUserUserId(userId);
-    }
-
-    /**
-     * Requirement 8: Recover notes from blockchain
-     * Fetches notes from blockchain metadata and restores them to the database
-     * 
-     * @param walletAddress The wallet address to recover notes from
-     * @return List of recovered notes
-     */
-    @PostMapping("/recover-from-blockchain")
-    public ResponseEntity<Map<String, Object>> recoverNotesFromBlockchain(
-        @RequestParam String walletAddress) {
-        try {
-            if (walletAddress == null || walletAddress.isEmpty()) {
-                Map<String, Object> error = new java.util.HashMap<>();
-                error.put("error", "Wallet address is required");
-                return ResponseEntity.badRequest().body(error);
-            }
-
-            List<Note> recoveredNotes = blockchainRecoveryService.recoverNotesFromBlockchain(walletAddress);
-            
-            Map<String, Object> response = new java.util.HashMap<>();
-            response.put("status", "success");
-            response.put("message", "Recovered " + recoveredNotes.size() + " note(s) from blockchain");
-            response.put("recoveredNotes", recoveredNotes);
-            response.put("walletAddress", walletAddress);
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> error = new java.util.HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
-    }
-
     /**
      * Requirement 8: Recover deleted notes from blockchain
      * Fetches deleted notes from blockchain metadata and optionally restores them
@@ -198,5 +159,4 @@ public class NoteController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
-    
 }
