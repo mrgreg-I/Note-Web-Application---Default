@@ -1,7 +1,10 @@
 package com.example.csit360.controller;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.csit360.entity.Note;
 import com.example.csit360.service.NoteService;
+import com.example.csit360.service.BlockchainTransactionService;
+import com.example.csit360.service.BlockchainRecoveryService;
 
 
 
@@ -24,6 +29,12 @@ public class NoteController {
     @Autowired
     private NoteService noteServ;
     
+    @Autowired
+    private BlockchainTransactionService blockchainTransactionService;
+
+    @Autowired
+    private BlockchainRecoveryService blockchainRecoveryService;
+    
     @GetMapping("/get/all")
     public List<Note> getAllNotes () {
         return noteServ.getAllNotes();
@@ -33,22 +44,159 @@ public class NoteController {
         return noteServ.findNoteById(id);
     }
     @PostMapping("/post")
-    public Note postNote(@RequestBody Note note) {
-        return noteServ.postNote(note,note.getUser().getUserId());
+    public ResponseEntity<Map<String, Object>> postNote(
+        @RequestBody Note note,
+        @RequestParam(required = false) String walletAddress) {
+        try {
+            // If wallet address is provided, store with blockchain logging
+            if (walletAddress != null && !walletAddress.isEmpty()) {
+                Map<String, Object> response = blockchainTransactionService.storeNoteWithBlockchainLogging(
+                    note,
+                    walletAddress,
+                    "CREATE"
+                );
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            } else {
+                // Fallback to regular save without blockchain
+                Note savedNote = noteServ.postNote(note, note.getUser().getUserId());
+                Map<String, Object> response = new java.util.HashMap<>();
+                response.put("note", savedNote);
+                response.put("status", "saved");
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            }
+        } catch (Exception e) {
+            Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     @PutMapping("/put/{id}")
-    public Note updateNote(@PathVariable Long id, @RequestBody Note newNote) {
-        return noteServ.updateNote(id, newNote);
+    public ResponseEntity<Map<String, Object>> updateNote(
+        @PathVariable Long id,
+        @RequestBody Note newNote,
+        @RequestParam(required = false) String walletAddress) {
+        try {
+            // Set the ID to ensure we're updating the right note
+            newNote.setNoteId(id);
+            
+            // If wallet address is provided, store with blockchain logging
+            if (walletAddress != null && !walletAddress.isEmpty()) {
+                Map<String, Object> response = blockchainTransactionService.storeUpdatedNoteWithBlockchainLogging(
+                    newNote,
+                    walletAddress
+                );
+                return ResponseEntity.ok(response);
+            } else {
+                // Fallback to regular update without blockchain
+                Note updatedNote = noteServ.updateNote(id, newNote);
+                Map<String, Object> response = new java.util.HashMap<>();
+                response.put("note", updatedNote);
+                response.put("status", "updated");
+                return ResponseEntity.ok(response);
+            }
+        } catch (Exception e) {
+            Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     @DeleteMapping("/delete/{id}")
-    public void deleteNote(@PathVariable Long id){
-        noteServ.deleteNote(id);
+    public ResponseEntity<Map<String, Object>> deleteNote(
+        @PathVariable Long id,
+        @RequestParam(required = false) String walletAddress) {
+        try {
+            // If wallet address is provided, store with blockchain logging
+            if (walletAddress != null && !walletAddress.isEmpty()) {
+                Map<String, Object> response = blockchainTransactionService.storeDeletedNoteWithBlockchainLogging(
+                    id,
+                    walletAddress
+                );
+                return ResponseEntity.ok(response);
+            } else {
+                // Fallback to regular delete without blockchain
+                noteServ.deleteNote(id);
+                Map<String, Object> response = new java.util.HashMap<>();
+                response.put("status", "deleted");
+                response.put("noteId", id);
+                return ResponseEntity.ok(response);
+            }
+        } catch (Exception e) {
+            Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
 
     //Get ToDoList by UserId
     @GetMapping("/tasks")
     public List<Note> getToDosByUserId(@RequestParam Long userId) {
     return noteServ.findByUserUserId(userId);
+    }
+
+    /**
+     * Requirement 8: Recover notes from blockchain
+     * Fetches notes from blockchain metadata and restores them to the database
+     * 
+     * @param walletAddress The wallet address to recover notes from
+     * @return List of recovered notes
+     */
+    @PostMapping("/recover-from-blockchain")
+    public ResponseEntity<Map<String, Object>> recoverNotesFromBlockchain(
+        @RequestParam String walletAddress) {
+        try {
+            if (walletAddress == null || walletAddress.isEmpty()) {
+                Map<String, Object> error = new java.util.HashMap<>();
+                error.put("error", "Wallet address is required");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            List<Note> recoveredNotes = blockchainRecoveryService.recoverNotesFromBlockchain(walletAddress);
+            
+            Map<String, Object> response = new java.util.HashMap<>();
+            response.put("status", "success");
+            response.put("message", "Recovered " + recoveredNotes.size() + " note(s) from blockchain");
+            response.put("recoveredNotes", recoveredNotes);
+            response.put("walletAddress", walletAddress);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    /**
+     * Requirement 8: Recover deleted notes from blockchain
+     * Fetches deleted notes from blockchain metadata and optionally restores them
+     * 
+     * @param walletAddress The wallet address to recover deleted notes from
+     * @return List of recovered deleted notes
+     */
+    @PostMapping("/recover-deleted-from-blockchain")
+    public ResponseEntity<Map<String, Object>> recoverDeletedNotesFromBlockchain(
+        @RequestParam String walletAddress) {
+        try {
+            if (walletAddress == null || walletAddress.isEmpty()) {
+                Map<String, Object> error = new java.util.HashMap<>();
+                error.put("error", "Wallet address is required");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            List<Note> recoveredDeletedNotes = blockchainRecoveryService.recoverDeletedNotesFromBlockchain(walletAddress);
+            
+            Map<String, Object> response = new java.util.HashMap<>();
+            response.put("status", "success");
+            response.put("message", "Recovered " + recoveredDeletedNotes.size() + " deleted note(s) from blockchain");
+            response.put("recoveredDeletedNotes", recoveredDeletedNotes);
+            response.put("walletAddress", walletAddress);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new java.util.HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
 }

@@ -24,6 +24,9 @@ public class Note {
     private String noteText;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String status = "pending"; // pending or confirmed
+    private String txhash; // Transaction hash from blockchain
+    private String walletAddress; // Wallet address that created the note
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "userId")
@@ -89,5 +92,27 @@ public class Note {
         this.user = user;
     }
 
-    
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getTxhash() {
+        return txhash;
+    }
+
+    public void setTxhash(String txhash) {
+        this.txhash = txhash;
+    }
+
+    public String getWalletAddress() {
+        return walletAddress;
+    }
+
+    public void setWalletAddress(String walletAddress) {
+        this.walletAddress = walletAddress;
+    }
 }

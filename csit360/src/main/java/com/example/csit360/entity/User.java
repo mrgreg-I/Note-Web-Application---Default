@@ -22,6 +22,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String username;
     private String password;
+    private String walletAddress;
 
     @OneToMany(fetch = FetchType.LAZY,mappedBy = "user", cascade = CascadeType.ALL)
 	@JsonManagedReference
@@ -65,6 +66,14 @@ public class User {
 
     public void setNotes(List<Note> notes) {
         this.notes = notes;
+    }
+
+    public String getWalletAddress() {
+        return walletAddress;
+    }
+
+    public void setWalletAddress(String walletAddress) {
+        this.walletAddress = walletAddress;
     }
 
     
