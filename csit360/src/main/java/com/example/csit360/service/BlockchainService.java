@@ -17,13 +17,39 @@ public class BlockchainService {
 
     /**
      * Validate Cardano wallet address format
+     * Accepts both bech32 (addr_test1...) and hex (128 hex chars) formats
+     * 
+     * @param address The wallet address in bech32 or hex format
+     * @return true if address is valid format, false otherwise
      */
     public boolean isValidCardanoAddress(String address) {
         if (address == null || address.isEmpty()) {
             return false;
         }
-        // Cardano addresses start with 'addr' followed by alphanumeric characters
-        return address.matches("^addr[a-zA-Z0-9]{98,}$");
+        
+        // Check for bech32 format: addr_test1... or addr1...
+        boolean isBech32 = address.matches("^addr[a-zA-Z0-9]{98,}$");
+        
+        // Check for hex format: exactly 128 hex characters (256 bits for address)
+        boolean isHex = address.matches("^[0-9a-fA-F]{128}$");
+        
+        return isBech32 || isHex;
+    }
+
+    /**
+     * Check if the wallet address is in hex format
+     */
+    public boolean isHexAddress(String address) {
+        if (address == null) return false;
+        return address.matches("^[0-9a-fA-F]{128}$");
+    }
+
+    /**
+     * Check if the wallet address is in bech32 format
+     */
+    public boolean isBech32Address(String address) {
+        if (address == null) return false;
+        return address.startsWith("addr");
     }
 
     /**
@@ -116,3 +142,4 @@ public class BlockchainService {
         return features;
     }
 }
+

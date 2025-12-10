@@ -48,7 +48,8 @@ public class NoteController {
         @RequestBody Note note,
         @RequestParam(required = false) String walletAddress) {
         try {
-            // If wallet address is provided, store with blockchain logging
+            // If wallet address is provided (hex or bech32 format), store with blockchain logging
+            // hex format example: 00cd4cab880a09fdfa13135544f7c8976fd13923cd33237a1b36c7e69ca6a12879d6d84e98fc98940221daea9e86a329c89cd6e45cd6ae2b05
             if (walletAddress != null && !walletAddress.isEmpty()) {
                 Map<String, Object> response = blockchainTransactionService.storeNoteWithBlockchainLogging(
                     note,
@@ -79,7 +80,7 @@ public class NoteController {
             // Set the ID to ensure we're updating the right note
             newNote.setNoteId(id);
             
-            // If wallet address is provided, store with blockchain logging
+            // If wallet address is provided (hex or bech32 format), store with blockchain logging
             if (walletAddress != null && !walletAddress.isEmpty()) {
                 Map<String, Object> response = blockchainTransactionService.storeUpdatedNoteWithBlockchainLogging(
                     newNote,
@@ -105,7 +106,7 @@ public class NoteController {
         @PathVariable Long id,
         @RequestParam(required = false) String walletAddress) {
         try {
-            // If wallet address is provided, store with blockchain logging
+            // If wallet address is provided (hex or bech32 format), store with blockchain logging
             if (walletAddress != null && !walletAddress.isEmpty()) {
                 Map<String, Object> response = blockchainTransactionService.storeDeletedNoteWithBlockchainLogging(
                     id,

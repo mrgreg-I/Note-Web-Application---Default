@@ -42,6 +42,7 @@ public class BlockchainController {
 
     /**
      * Validate wallet connection
+     * Accepts wallet addresses in hex or bech32 format
      */
     @PostMapping("/validate-wallet")
     public ResponseEntity<Map<String, Object>> validateWallet(
@@ -50,7 +51,7 @@ public class BlockchainController {
         try {
             if (!blockchainService.isValidCardanoAddress(walletAddress)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("error", "Invalid Cardano address format"));
+                        .body(Map.of("error", "Invalid wallet address format. Expected: hex format (128 chars, e.g., 00cd4cab88...) or bech32 format (addr_test1...)"));
             }
             Map<String, Object> validation = blockchainService.validateWalletConnection(walletAddress, walletName);
             return ResponseEntity.ok(validation);

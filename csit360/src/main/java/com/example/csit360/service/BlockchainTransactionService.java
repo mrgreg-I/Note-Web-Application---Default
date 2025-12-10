@@ -30,7 +30,7 @@ public class BlockchainTransactionService {
      * and returns a simulated transaction hash
      * 
      * @param note The note to store
-     * @param walletAddress The wallet address creating the note
+     * @param walletAddress The wallet address (hex or bech32 format)
      * @param action The action type (CREATE, UPDATE, DELETE)
      * @return Map containing saved note and transaction info
      */
@@ -71,7 +71,7 @@ public class BlockchainTransactionService {
      * Store an updated note with pending status
      * 
      * @param note The updated note
-     * @param walletAddress The wallet address
+     * @param walletAddress The wallet address (hex or bech32 format)
      * @return Map containing updated note and transaction info
      */
     public Map<String, Object> storeUpdatedNoteWithBlockchainLogging(Note note, String walletAddress) {
@@ -111,7 +111,7 @@ public class BlockchainTransactionService {
      * Store a note deletion with pending status
      * 
      * @param noteId The ID of the note being deleted
-     * @param walletAddress The wallet address
+     * @param walletAddress The wallet address (hex or bech32 format)
      * @return Map containing transaction info
      */
     public Map<String, Object> storeDeletedNoteWithBlockchainLogging(Long noteId, String walletAddress) {
@@ -175,6 +175,8 @@ public class BlockchainTransactionService {
      * @return Simulated transaction hash
      */
     private String generateTransactionHash() {
-        return "tx_" + UUID.randomUUID().toString().replace("-", "").substring(0, 56);
+        // UUID without dashes is 32 characters, use all of it
+        String uuidHash = UUID.randomUUID().toString().replace("-", "");
+        return uuidHash;
     }
 }
