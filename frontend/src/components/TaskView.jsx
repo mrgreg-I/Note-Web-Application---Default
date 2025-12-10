@@ -103,25 +103,26 @@ function TaskView() {
 
           {/* 🌙 DARK MODE BUTTON */}
                               <Button
-              onClick={toggleDarkMode}
-              sx={{
-                backgroundColor: darkMode ? "#333" : "white",
-                color: darkMode ? "white" : "#091057",
-                padding: "6px 16px",
-                borderRadius: "10px",
-                textTransform: "none",
-                fontFamily: "Poppins",
-                fontWeight: "bold",
-                fontSize: "16px",
-                "&:hover": {
-                  backgroundColor: darkMode ? "#444" : "#e8e8e8",
-                }
-              }}
-            >
+                      onClick={toggleDarkMode}
+                      sx={{
+                        backgroundColor: darkMode ? "#333" : "white",
+                        color: darkMode ? "white" : "#091057",
+                        padding: "6px 16px",
+                        borderRadius: "10px",
+                        textTransform: "none",
+                        fontFamily: "Poppins",
+                        fontWeight: "bold",
+                        fontSize: "16px",
+                        transition: "transform 0.2s ease, background-color 0.2s ease",
+                        "&:hover": {
+                          transform: "scale(1.05)",
+                          backgroundColor: darkMode ? "#444" : "#e8e8e8",
+                        }
+                      }}
+                    >
+                      {darkMode ? "Light Mode" : "Dark Mode"}
+                    </Button>
 
-
-            {darkMode ? "Light Mode" : "Dark Mode"}
-          </Button>
 
         {/* 🌙 DARK MODE BUTTON */}
 
@@ -138,37 +139,43 @@ function TaskView() {
       fontFamily: "Poppins",
       fontWeight: "bold",
       fontSize: "16px",
+      transition: "transform 0.2s ease, background-color 0.2s ease",
       "&:hover": {
+        transform: "scale(1.05)",
         backgroundColor: darkMode ? "#444" : "#e8e8e8",
       }
     }}
   >
-              Home
-            </Button>
-          </Link>
+    Home
+  </Button>
+</Link>
+
 
           {/* LOGOUT */}
           <Button
-            onClick={() => {
-              localStorage.removeItem('loggedInUserId');
-              navigate('/login');
-            }}
-            sx={{
-              backgroundColor: darkMode ? "#333" : "white",
-              color: darkMode ? "white" : "#091057",
-              padding: "6px 16px",
-              borderRadius: "10px",
-              textTransform: "none",
-              fontFamily: "Poppins",
-              fontWeight: "bold",
-              fontSize: "16px",
-              "&:hover": {
-                backgroundColor: darkMode ? "#444" : "#e8e8e8",
-              }
-            }}
-          >
-            Logout
-          </Button>
+  onClick={() => {
+    localStorage.removeItem('loggedInUserId');
+    navigate('/login');
+  }}
+  sx={{
+    backgroundColor: darkMode ? "#333" : "white",
+    color: darkMode ? "white" : "#091057",
+    padding: "6px 16px",
+    borderRadius: "10px",
+    textTransform: "none",
+    fontFamily: "Poppins",
+    fontWeight: "bold",
+    fontSize: "16px",
+    transition: "transform 0.2s ease, background-color 0.2s ease",
+    "&:hover": {
+      transform: "scale(1.05)",
+      backgroundColor: darkMode ? "#444" : "#e8e8e8",
+    }
+  }}
+>
+  Logout
+</Button>
+
 
 
         </Box>
