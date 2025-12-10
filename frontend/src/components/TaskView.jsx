@@ -126,7 +126,7 @@ function TaskView() {
   const fetchTasks = async () => {
     try {
       console.log("WalletAPI: ",api);
-      const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
+      const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${walletAddress}`);
       // Sort notes so newest is first
       const sortedNotes = (response.data || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setNote(sortedNotes);
@@ -136,7 +136,7 @@ function TaskView() {
   };
 
   fetchTasks();
-}, [userId]);
+}, [walletAddress]);
 
   const handleAddTaskClick = () => {
     setOpenAddDialog(true);
@@ -176,35 +176,62 @@ function TaskView() {
     return `${formattedAda} ADA`;
 };
   const postNote = async (note) => {
-    try {
-      const response = await axios.post('/api/note/post', note);
-      const newNote = response.data;
-        const txResult = await handleSubmitTransaction();
-        setTransactionInfo({
-          type: 'CREATE',
-          noteTitle: newNote.title,
-          transactionId: txResult.transactionId,
-          network: provider.network,
-          fee: txResult.amount,
-          wallet: localStorage.getItem('connectedWallet')
-        });
-        setShowTransactionDialog(true);
-      
-      setNote(prevTasks => [newNote, ...prevTasks]); // Newest first
-      setNewNote({
-        title: '',
-        noteText: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        user: { userId: userId }
-      });
-      const res = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
-      setNote(res.data || []);
-    } catch (error) {
-      console.error("Error posting task:", error);
-      
+  try {
+    // 1. Run blockchain transaction
+    const txResult = await handleSubmitTransaction();
+
+    // If transaction failed, stop
+    if (!txResult) {
+      console.error("Transaction failed — note will not be posted.");
+      return;
     }
-  };
+
+    // 2. Send to backend using txResult.transactionId
+    const response = await axios.post(
+      `http://localhost:8080/api/note/post?walletAddress=${walletAddress}&txhash=${txResult.transactionId}`,
+      {
+        title: note.title,
+        noteText: note.noteText
+      }
+    );
+
+    const newNote = response.data.note ?? response.data;
+
+    // 3. Show transaction dialog
+    setTransactionInfo({
+      type: 'CREATE',
+      noteTitle: newNote.title,
+      transactionId: txResult.transactionId,
+      network: provider.network,
+      fee: txResult.amount,
+      wallet: localStorage.getItem('connectedWallet')
+    });
+
+    setShowTransactionDialog(true);
+
+    // 4. Update UI
+    setNote(prev => [newNote, ...prev]);
+
+    // 5. Reset form
+    setNewNote({
+      title: '',
+      noteText: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      user: { userId }
+    });
+
+    // 6. Refresh notes by wallet
+    const res = await axios.get(
+      `http://localhost:8080/api/note/get/by-wallet/${walletAddress}`
+    );
+    setNote(res.data);
+
+  } catch (error) {
+    console.error("Error posting task:", error);
+  }
+};
+
 
   const handleSubmit = (e) => {
     e.preventDefault();

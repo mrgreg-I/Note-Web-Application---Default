@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.csit360.entity.Note;
-import com.example.csit360.service.NoteService;
-import com.example.csit360.service.BlockchainTransactionService;
 import com.example.csit360.service.BlockchainRecoveryService;
+import com.example.csit360.service.BlockchainTransactionService;
+import com.example.csit360.service.NoteService;
 
 
 
@@ -159,4 +159,8 @@ public class NoteController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
+    @GetMapping("/get/by-wallet/{wallet}")
+    public List<Note> getNotesByWallet(@PathVariable String wallet) {
+        return noteServ.getNotesByWallet(wallet);
+    } 
 }

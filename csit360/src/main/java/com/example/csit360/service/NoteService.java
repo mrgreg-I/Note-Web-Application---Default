@@ -59,4 +59,8 @@ public class NoteService {
     public void deleteNote(Long id){
         noteRepo.deleteById(id);
     }
+
+    public List<Note> getNotesByWallet(String wallet){
+        return noteRepo.findNotesByWalletAddress(wallet);
+    }
 }
