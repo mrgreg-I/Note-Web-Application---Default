@@ -49,6 +49,7 @@ function TaskView() {
   }))
   // Check for previously connected wallet on component mount
   useEffect(() => {
+    
     const storedWalletName = localStorage.getItem('connectedWallet');
     const storedWalletAddress = localStorage.getItem('walletAddress');
     if (storedWalletName && storedWalletAddress) {
@@ -119,6 +120,9 @@ function TaskView() {
     }
 
     try {
+      const api = await window.cardano['lace'].enable();
+      setWalletApi(api);
+      console.log("WalletAPI: ",api);
       const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
       // Sort notes so newest is first
       const sortedNotes = (response.data || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
