@@ -1,4 +1,5 @@
 package com.example.csit360.controller;
+
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,40 +16,41 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.csit360.entity.Note;
 import com.example.csit360.service.NoteService;
 
-
-
-
 @RestController
 @RequestMapping("/api/note")
 public class NoteController {
+
     @Autowired
     private NoteService noteServ;
-    
+
     @GetMapping("/get/all")
-    public List<Note> getAllNotes () {
+    public List<Note> getAllNotes() {
         return noteServ.getAllNotes();
     }
+
     @GetMapping("/get/{id}")
     public Note findNoteById(@PathVariable Long id) {
         return noteServ.findNoteById(id);
     }
+
     @PostMapping("/post")
     public Note postNote(@RequestBody Note note) {
-        return noteServ.postNote(note,note.getUser().getUserId());
+        return noteServ.postNote(note, note.getUser().getUserId());
     }
+
     @PutMapping("/put/{id}")
     public Note updateNote(@PathVariable Long id, @RequestBody Note newNote) {
         return noteServ.updateNote(id, newNote);
     }
+
     @DeleteMapping("/delete/{id}")
-    public void deleteNote(@PathVariable Long id){
+    public void deleteNote(@PathVariable Long id) {
         noteServ.deleteNote(id);
     }
 
-    //Get ToDoList by UserId
+    // Get notes by user
     @GetMapping("/tasks")
     public List<Note> getToDosByUserId(@RequestParam Long userId) {
-    return noteServ.findByUserUserId(userId);
+        return noteServ.findByUserUserId(userId);
     }
-    
 }

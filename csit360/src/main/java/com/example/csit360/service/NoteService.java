@@ -9,62 +9,78 @@ import com.example.csit360.entity.Note;
 import com.example.csit360.entity.User;
 import com.example.csit360.repository.NoteRepository;
 import com.example.csit360.repository.UserRepository;
+
 @Service
 public class NoteService {
+
     @Autowired
     private NoteRepository noteRepo;
+
+    @Autowired
     private UserRepository userRepo;
 
-     public NoteService(){
+    public NoteService() {
         super();
     }
+
     @Autowired
-    public NoteService(NoteRepository noteRepo,UserRepository userRepo) {
+    public NoteService(NoteRepository noteRepo, UserRepository userRepo) {
         this.noteRepo = noteRepo;
         this.userRepo = userRepo;
     }
 
-public Note postNote(Note note, Long userId) {
-    try {
-        User user = userRepo.findById(userId).orElse(null);
-        if (user != null) { 
+    public Note postNote(Note note, Long userId) {
+        try {
+            User user = userRepo.findById(userId).orElse(null);
+            if (user == null) {
+                throw new IllegalArgumentException("Invalid user ID: " + userId);
+            }
+
             note.setUser(user);
-            return noteRepo.save(note);  
-        } else {
-            throw new IllegalArgumentException("Invalid user ID: " + userId);
+
+            if (note.getStatus() == null || note.getStatus().isEmpty()) {
+                note.setStatus("Pending");
+            }
+
+            return noteRepo.save(note);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Error occurred while saving the Note: " + e.getMessage(), e);
         }
-    } catch (Exception e) {
-        throw new RuntimeException("Error occurred while saving the Note: " + e.getMessage(), e);
     }
-}
-    
-    public List<Note> getAllNotes(){
+
+    public List<Note> getAllNotes() {
         return noteRepo.findAll();
     }
 
-    public Note findNoteById(Long id){
+    public Note findNoteById(Long id) {
         return noteRepo.findById(id).orElse(null);
     }
 
     public Note updateNote(Long id, Note newNote) {
-    Note existingNote = findNoteById(id);
-    if (existingNote == null) {
-        throw new IllegalArgumentException("Note with id " + id + " not found.");
-    }
-    if (newNote != null) {
-        if (newNote.getTitle() != null) {
-            existingNote.setTitle(newNote.getTitle());
+        Note existingNote = findNoteById(id);
+        if (existingNote == null) {
+            throw new IllegalArgumentException("Note with id " + id + " not found.");
         }
-        if (newNote.getNoteText() != null) {
-            existingNote.setNoteText(newNote.getNoteText());
+
+        if (newNote != null) {
+            if (newNote.getTitle() != null) {
+                existingNote.setTitle(newNote.getTitle());
+            }
+            if (newNote.getNoteText() != null) {
+                existingNote.setNoteText(newNote.getNoteText());
+            }
+            if (newNote.getStatus() != null) {
+                existingNote.setStatus(newNote.getStatus());
+            }
+            existingNote.setUpdatedAt(java.time.LocalDateTime.now());
+            return noteRepo.save(existingNote);
         }
-        existingNote.setUpdatedAt(java.time.LocalDateTime.now());
-        return noteRepo.save(existingNote);
+
+        return existingNote;
     }
-    return existingNote;
-}
-    
-    public void deleteNote(Long id){
+
+    public void deleteNote(Long id) {
         noteRepo.deleteById(id);
     }
 

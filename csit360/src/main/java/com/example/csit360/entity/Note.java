@@ -24,6 +24,8 @@ public class Note {
     private String noteText;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String status;
+
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "userId")
@@ -71,6 +73,14 @@ public class Note {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+    public String getStatus() {
+    return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     @PrePersist
     protected void onCreate(){
         this.createdAt=LocalDateTime.now();

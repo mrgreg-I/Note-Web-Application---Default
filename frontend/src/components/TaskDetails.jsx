@@ -243,7 +243,16 @@ const handleUpdateChange = (e) => {
         </Box>
         </Box>
         
-        
+                <Typography
+          variant="h6"
+          color="#091057"
+          fontFamily="Poppins"
+          fontWeight="bold"
+          marginBottom={1}
+        >
+          Status: {currentData.status}
+        </Typography>
+
         <Typography
           variant="h6"
           color="#091057"
@@ -270,27 +279,46 @@ const handleUpdateChange = (e) => {
       <Dialog open={isDialogOpenUpdate} onClose={() => setIsDialogOpenUpdate(false)}>
           <form onSubmit={handleUpdateSubmit}>
         <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <TextField
-                    label="Title"
-                    name="title"
-                    variant="outlined"
-                    value={updateData.title}
-                    onChange={handleUpdateChange}
-                    fullWidth
-                    required
-                  />
-                  <TextField
-                    label="Notes"
-                    name="noteText"
-                    variant="outlined"
-                    value={updateData.noteText}
-                    onChange={handleUpdateChange}
-                    fullWidth
-                    required
-                  />
-                </Box>
-        </DialogContent>
+  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    
+    <TextField
+      label="Title"
+      name="title"
+      variant="outlined"
+      value={updateData.title}
+      onChange={handleUpdateChange}
+      fullWidth
+      required
+    />
+
+    <TextField
+      label="Notes"
+      name="noteText"
+      variant="outlined"
+      value={updateData.noteText}
+      onChange={handleUpdateChange}
+      fullWidth
+      required
+    />
+
+    {/* ⚠️ ADD STATUS DROPDOWN HERE */}
+    <FormControl fullWidth>
+      <InputLabel>Status</InputLabel>
+      <Select
+        name="status"
+        value={updateData.status || "Pending"}
+        label="Status"
+        onChange={handleUpdateChange}
+      >
+        <MenuItem value="Pending">Pending</MenuItem>
+        <MenuItem value="In Progress">In Progress</MenuItem>
+        <MenuItem value="Completed">Completed</MenuItem>
+      </Select>
+    </FormControl>
+
+  </Box>
+</DialogContent>
+
 
         <DialogActions>
           <Button

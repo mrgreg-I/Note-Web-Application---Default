@@ -34,20 +34,24 @@ function TaskUpdate() {
   const [currentData, setCurrentData] = useState({
     noteId: '',
     title: '',
-    notes: '',
+    noteText: '',
+    status: 'Pending',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     user: { userId: '' },
-  });
+});
+
 
   const [updateData, setUpdateData] = useState({
     noteId: '',
     title: '',
-    notes: '',
+    noteText: '',
+    status: 'Pending',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     user: { userId: '' },
-  });
+});
+
 
   useEffect(() => {
     if (noteId) {
@@ -107,6 +111,15 @@ function TaskUpdate() {
             <Typography variant="h2" gutterBottom>
               Update Task
             </Typography>
+            <Typography
+              variant="h6"
+              color="#091057"
+              fontFamily="Poppins"
+              fontWeight="bold"
+              marginBottom={1}
+            >
+              Status: {currentData.status}
+            </Typography>
 
             {/* Paper component for form container */}
             <Paper elevation={3} sx={{ padding: 3 }}>
@@ -123,13 +136,28 @@ function TaskUpdate() {
                   />
                   <TextField
                     label="Notes"
-                    name="notes"
+                    name="noteText"
                     variant="outlined"
-                    value={updateData.notes}
+                    value={updateData.noteText}
                     onChange={handleUpdateChange}
                     fullWidth
                     required
                   />
+
+                  <FormControl fullWidth>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    name="status"
+                    value={updateData.status}
+                    label="Status"
+                    onChange={handleUpdateChange}
+                  >
+                    <MenuItem value="Pending">Pending</MenuItem>
+                    <MenuItem value="In Progress">In Progress</MenuItem>
+                    <MenuItem value="Completed">Completed</MenuItem>
+                  </Select>
+                </FormControl>
+
                   <Button
                     type="submit"
                     variant="contained"

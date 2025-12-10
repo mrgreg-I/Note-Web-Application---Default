@@ -8,6 +8,8 @@ import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { Box, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material';
 import Logo from "../assets/Logo1.png";
+import { FormControl, Select, InputLabel, MenuItem } from "@mui/material";
+
 
 function TaskView() {
 
@@ -16,12 +18,14 @@ function TaskView() {
   const [note, setNote] = useState([]);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [newNote, setNewNote] = useState({
-    title: '',
-    noteText: '',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    user: { userId: userId },
-  });
+  title: '',
+  noteText: '',
+  status: 'Pending',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  user: { userId: userId },
+});
+
 
   const navigate = useNavigate();
 
@@ -58,6 +62,7 @@ function TaskView() {
         setNewNote({
           title: '',
           noteText: '',
+          status: 'Pending',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           user: { userId: userId },
@@ -217,7 +222,7 @@ function TaskView() {
         {/* TASK CARDS */}
         <Box display="flex" gap={3} flexWrap="wrap" marginTop={3}>
           {note.map((task) => (
-            <Link
+            <Link 
               to={`/taskdetails`}
               state={{ noteId: task.noteId }}
               key={task.noteId}
@@ -231,6 +236,7 @@ function TaskView() {
                 boxShadow={2}
                 sx={{ cursor: "pointer" }}
               >
+                {/* Title */}
                 <Typography
                   variant="h6"
                   fontFamily="Poppins"
@@ -239,6 +245,8 @@ function TaskView() {
                 >
                   {task.title}
                 </Typography>
+
+                {/* Notes */}
                 <Typography
                   color={darkMode ? "#FFD37A" : "#EC8305"}
                   fontFamily="Poppins"
@@ -247,9 +255,24 @@ function TaskView() {
                 >
                   {task.noteText}
                 </Typography>
+
+                {/* ⭐ STATUS DISPLAY */}
+                <Typography
+                  fontFamily="Poppins"
+                  fontSize="14px"
+                  marginTop={1}
+                  color={task.status === "Completed" ? "green" :
+                        task.status === "In Progress" ? "orange" :
+                        "red"}
+                  fontWeight="bold"
+                >
+                  Status: {task.status}
+                </Typography>
+
               </Box>
             </Link>
           ))}
+
         </Box>
       </Box>
 
@@ -275,6 +298,20 @@ function TaskView() {
               value={newNote.noteText}
               onChange={(e) => setNewNote({ ...newNote, noteText: e.target.value })}
             />
+            <FormControl fullWidth sx={{ mt: 2 }}>
+              <InputLabel>Status</InputLabel>
+              <Select
+                name="status"
+                value={newNote.status}
+                label="Status"
+                onChange={(e) => setNewNote({ ...newNote, status: e.target.value })}
+              >
+                <MenuItem value="Pending">Pending</MenuItem>
+                <MenuItem value="In Progress">In Progress</MenuItem>
+                <MenuItem value="Completed">Completed</MenuItem>
+              </Select>
+            </FormControl>
+
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Cancel</Button>
