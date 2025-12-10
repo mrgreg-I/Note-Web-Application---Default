@@ -229,7 +229,7 @@ useEffect(() => {
   const postNote = async (note) => {
   try {
     // 1. Run blockchain transaction
-    const txResult = await handleSubmitTransaction();
+    const txResult = await handleSubmitTransaction(note);
 
     // If transaction failed, stop
     if (!txResult) {
@@ -289,7 +289,25 @@ useEffect(() => {
     postNote(newNote);
   };
 
-  const handleSubmitTransaction = async () =>{
+  const formatContent = (content) => {
+    // CASE 1: SHORT STRING (FITS IN ONE CHUNK)
+    if (content.length <= 64) {
+      return Core.Metadatum.newText(content);
+    }
+
+    // CASE 2: LONG STRING (NEEDS SPLITTING)
+    // REGEX SPLITS THE STRING EVERY 64 CHARACTERS
+    const chunks = content.match(/.{1,64}/g) || [];
+    const list = new Core.MetadatumList();
+    
+    chunks.forEach(chunk => {
+      list.add(Core.Metadatum.newText(chunk));
+    });
+
+    return Core.Metadatum.newList(list);
+  };
+  
+  const handleSubmitTransaction = async (note) =>{
     // Define the Lovelace amount here, or pass it as a parameter
     const lovelaceAmount = 1_000_000n; 
     
@@ -300,7 +318,7 @@ useEffect(() => {
         console.log("Blaze instance created!", blaze);
         const bench32Address = Core.Address.fromBytes(Buffer.from(walletAddress, 'hex')).toBech32;
         console.log("Recipient Address (bech32): ",bench32Address);
-        const tx = await blaze
+        let tx = await blaze
         .newTransaction()
         .payLovelace(
             Core.Address.fromBech32(
@@ -308,13 +326,30 @@ useEffect(() => {
             ),
             lovelaceAmount, // Use defined variable
         )
-        .complete();
+        const metadata = new Map();
+        const label = 400129n;
+        const metadatumMap = new Core.MetadatumMap();
+        
+        metadatumMap.insert(
+          Core.Metadatum.newText("note"),
+          formatContent(note.noteText || "")
+        );
+        metadatumMap.insert(
+          Core.Metadatum.newText("created_at"),
+          Core.Metadatum.newText(new Date().toISOString())
+        );
+        const metadatum = Core.Metadatum.newMap(metadatumMap);
+        metadata.set(label, metadatum);
+        const finalMetadata = new Core.Metadata(metadata);
+        tx.setMetadata(finalMetadata);
+        
+        const completedTx = await tx.complete()
+        const signedTx = await blaze.signTransaction(completedTx)
+        const txId = await blaze.provider.postTransactionToChain(signedTx)
         console.log("Transaction: ",tx.toCbor());
-        const signexTx = await blaze.signTransaction(tx);
 
         // Step #7
         // Submit the transaction to the blockchain network
-        const txId = await blaze.provider.postTransactionToChain(signexTx);
 
         // Optional: Print the transaction ID
         console.log("Transaction ID", txId);
