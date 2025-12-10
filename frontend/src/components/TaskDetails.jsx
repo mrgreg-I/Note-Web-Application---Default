@@ -4,6 +4,8 @@ import axios from 'axios';
 import Typography from '@mui/material/Typography';
 import { TextField, Button, Container, Box, Paper, IconButton, Alert } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import SaveIcon from '@mui/icons-material/Save';
+import CancelIcon from '@mui/icons-material/Cancel';
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {Blockfrost, WebWallet, Blaze, Core} from '@blaze-cardano/sdk'
 import Dialog from '@mui/material/Dialog';
@@ -12,22 +14,26 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
 import Tooltip from '@mui/material/Tooltip';
+import EditIcon from '@mui/icons-material/Edit';
 import { Link } from 'react-router-dom';
 import Logo from "../assets/Logo1.png"
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import { Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Select, MenuItem, FormControl, InputLabel, Card, CardContent } from '@mui/material';
+import * as React from 'react';
 
-function TaskUpdate() {
+function TaskDetails() {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { noteId } = location.state || {};  // Get taskId from URL
+  const { noteId } = useParams();  // Get taskId from URL
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDialogOpenUpdate, setIsDialogOpenUpdate] = useState(false);
+  const [walletConnected, setWalletConnected] = useState(localStorage.getItem('walletConnected') === 'true');
+  const [walletName, setWalletName] = useState(localStorage.getItem('walletName') || '');
+  const [walletAddress, setWalletAddress] = useState(localStorage.getItem('walletAddress') || '');
   const [confirm, setConfirm] = useState(false);
   const [selectedNote, setSelectedNote] = useState(null);
-  const [walletAddress, setWalletAddress] = useState('');
   const [walletApi, setWalletApi] = useState();
   const [provider] = useState(() => new Blockfrost({
       network: 'cardano-preview',
@@ -70,7 +76,25 @@ console.log('noteId from location.state:', noteId);
       }
     };
   };
-
+useEffect(() => {
+  const fetchWallet = async () => {
+    try {
+      if (window.cardano?.lace) {
+        const api = await window.cardano.lace.enable();
+        setWalletApi(api);
+        setWalletConnected(true); // <- mark wallet as connected
+        setWalletAddress(localStorage.getItem('walletAddress'));
+        setWalletName(localStorage.getItem('connectedWallet') || 'Wallet');
+      } else {
+        setWalletConnected(false);
+      }
+    } catch (error) {
+      console.error("Wallet connection failed", error);
+      setWalletConnected(false);
+    }
+  };
+  fetchWallet();
+}, []);
  useEffect(() => {
   const fetchData = async () => {
     if (noteId) {
@@ -90,6 +114,88 @@ console.log('noteId from location.state:', noteId);
   };
   fetchData();
   }, [noteId]);
+
+  const handleSyncWallet = async () => {
+    try {
+      setWalletError('');
+      setWalletSuccess('');
+  
+      // Check if Cardano object exists
+      if (!window.cardano) {
+        setWalletError('Cardano object not found. Please ensure a Cardano wallet extension is installed.');
+        return;
+      }
+  
+      // Try to connect to Lace wallet first, then fallback to other wallets
+      const walletOptions = ['lace', 'eternl', 'flint', 'nami'];
+      let connected = false;
+      let connectedWalletName = '';
+  
+      for (const wallet of walletOptions) {
+        if (window.cardano[wallet]) {
+          try {
+            // This is the CIP-0030 enable() method that asks for permission
+            const api = await window.cardano[wallet].enable();
+            setWalletApi(api);
+            console.log("WalletAPI: ", api);
+            if (api) {
+              // Get the wallet's unused addresses
+              const walletAddress = await api.getChangeAddress();
+              console.log("Wallet Address: ", walletAddress);
+              setWalletAddress(walletAddress);
+              setWalletName(wallet);
+              setWalletConnected(true);
+              const res = await axios.get(
+                `http://localhost:8080/api/note/get/by-wallet/${walletAddress}`
+              );
+              setNote(res.data);
+              localStorage.setItem('connectedWallet', connectedWalletName);
+              localStorage.setItem('walletAddress', walletAddress);
+              localStorage.setItem('walletConnected', 'true');
+              localStorage.setItem('walletName', walletName);
+            }
+            connected = true;
+            connectedWalletName = wallet;
+            break;
+          } catch (error) {
+            // User rejected permission or other error, try next wallet
+            console.log(`Could not connect to ${wallet}:`, error.message);
+            continue;
+          }
+        }
+      }
+  
+      if (!connected) {
+        setWalletError('No Cardano wallet found or permission denied. Please install Lace, Eternl, Flint, or Nami wallet extension.');
+      } else {
+        setWalletSuccess(`Connected to ${connectedWalletName}`);
+        localStorage.setItem('connectedWallet', connectedWalletName);
+        localStorage.setItem('walletAddress', walletAddress);
+      }
+    } catch (error) {
+      console.error('Error syncing wallet:', error);
+      setWalletError(`Error: ${error.message || 'Failed to sync wallet'}`);
+    }
+  };
+  
+  const handleDisconnectWallet = () => {
+    // Remove ALL wallet data from localStorage
+    localStorage.removeItem('connectedWallet');
+    localStorage.removeItem('walletAddress');
+    localStorage.removeItem('walletConnected');
+    localStorage.removeItem('walletName');
+    // Reset state
+    setWalletConnected(false);
+    setWalletName('');
+    setWalletAddress('');
+    setWalletApi(null);
+  
+    // Clear notes
+    setNote([]);
+  
+    setWalletSuccess('Wallet disconnected successfully!');
+  };
+
 const formatLovelaceToAda = (lovelaceAmount) => {
     // Handle non-numeric values
     if (typeof lovelaceAmount === 'string' && isNaN(lovelaceAmount)) {
@@ -355,187 +461,343 @@ const handleUpdateChange = (e) => {
   }
 };
 
-  return (
-    <div>
-        {/* Header */}
-      <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
-        bgcolor="#091057"
-        padding={2}
-        color="white"
-      >
-        <Link to="/tasks">
-         <Button sx={{ width: 'auto', mr: 1 }}><img src={Logo} alt="Logo" style={{ maxWidth: "60px" }} /></Button>
-        </Link>
-        
-        <Box display="flex" gap={3}>
-          <Link to="/tasks">
-            <Typography
-              sx={{
-                color: "white",
-                fontFamily: "Poppins",
-                fontSize: "16px",
-                cursor: "pointer",
-                textDecoration: "none",
-                fontWeight: "bold",
-              }}
-            >
-              Home
-            </Typography>
-          </Link>
-    
-          <Link to="/login">
-            <Typography
-              sx={{
-                color: "white",
-                fontFamily: "Poppins",
-                fontSize: "16px",
-                cursor: "pointer",
-                textDecoration: "none",
-                fontWeight: "bold",
-              }}
-              onClick={handleLogout}
-            >
-              Logout
-            </Typography>
-          </Link>
-        </Box>
-      </Box>
-
-      <Box padding={4}>
-        <Box display="flex" alignItems="center" marginBottom={3}>
-            <IconButton onClick={() => navigate(`/tasks`)}>
-              <ArrowBackIcon sx={{ color: "#091057" }} />
-            </IconButton>
-        </Box>
-
-        <Typography
-        sx={{
-          fontFamily: "Poppins",
-          fontSize: "24px",
-          fontWeight: "bold",
-          marginBottom: 2,
-          color:'#091057',
-          "& .MuiInputBase-root": {
-            fontSize: "24px",
-            fontWeight: "bold",
-            fontFamily: "Poppins",
-            color: "#091057",
-          },
-        }}>{currentData.title}</Typography>
-        <Box display="flex" justifyContent="space-between" marginBottom={3}>
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'row' }}>
-        <Typography
-        fontFamily="Poppins"
-              fontSize="16px"
-              color="#091057"
-              fontWeight="bold">
-        </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1 }}>
-                <Tooltip title="Update">
-                    <Button 
-                    onClick={() => setIsDialogOpenUpdate(true)}
-                    sx={{ width: '150px',height:36 }} variant="outlined" color="success" startIcon={<CheckCircleOutlineIcon />} fullWidth>
-                    Update Task
-                    </Button>
-                </Tooltip>
-
-                <Tooltip title="Delete Task">
-                  <Button sx={{ width: '150px',height:36 }} variant="outlined" color="error" startIcon={<DeleteIcon />} fullWidth onClick={(event) => {
-                    event.stopPropagation();
-                    setSelectedNote(currentData); // Set selectedTask before confirming delete
-                    setConfirm(true); // Show the delete confirmation dialog
-                  }}>
-                    Delete Task
-                  </Button>
-                </Tooltip>
-        </Box>
-        </Box>
-        
-        
-        <Typography
-          variant="h6"
-          color="#091057"
-          fontFamily="Poppins"
-          fontWeight="bold"
-          marginBottom={1}
-        >
-          Notes
-        </Typography>
-        <Box
-          sx={{
-            border: '1px solid #091057',  
-            padding: '16px',               
-            borderRadius: '8px',           
-            backgroundColor: '#f9f9f9',
-            height:160   
-          }}
-        >
-          <Typography>
-            {currentData.noteText}
+    return (
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f5f5f5' }}>
+      <Box sx={{ 
+        width: '250px', 
+        bgcolor: 'white', 
+        borderRight: '1px solid #e0e0e0',
+        display: 'flex',
+        flexDirection: 'column',
+        p: 3
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+          <img src={Logo} alt="Logo" style={{ height: '30px', marginRight: '12px' }} />
+          <Typography sx={{ fontWeight: 'bold', fontSize: '20px', fontFamily: 'Poppins' }}>
+            Default
           </Typography>
         </Box>
-        
-      <Dialog open={isDialogOpenUpdate} onClose={() => setIsDialogOpenUpdate(false)}>
-          <form onSubmit={handleUpdateSubmit}>
-        <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+
+        <Button
+          fullWidth
+          variant="contained"
+          startIcon={<ArrowBackIcon />}
+          sx={{
+            backgroundColor: '#091057',
+            color: 'white',
+            fontFamily: 'Poppins',
+            textTransform: 'none',
+            mb: 3,
+            py: 1.5,
+            '&:hover': {
+              backgroundColor: '#0a1a6b'
+            }
+          }}
+          onClick={() => navigate('/tasks')}
+        >
+          Back to Notes
+        </Button>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#4CAF50' }} />
+            <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>All</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#2196F3' }} />
+            <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>Personal</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#FF5722' }} />
+            <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>Work</Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ mt: 'auto', pt: 3 }}>
+          <Box sx={{ 
+            bgcolor: '#f5f5f5', 
+            borderRadius: 2, 
+            p: 2,
+            textAlign: 'center'
+          }}>
+            <Box sx={{ 
+              width: 60, 
+              height: 60, 
+              borderRadius: '50%', 
+              bgcolor: '#FFF9C4',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mx: 'auto',
+              mb: 2
+            }}>
+              <Typography sx={{ fontSize: '30px' }}>👤</Typography>
+            </Box>
+            <Typography sx={{ fontFamily: 'Poppins', fontSize: '12px', mb: 1 }}>
+              {walletConnected ? walletName : 'No Wallet'}
+            </Typography>
+            <Button
+            fullWidth
+            variant="contained"
+            size="small"
+            sx={{
+              backgroundColor: walletConnected ? '#d32f2f' : '#091057',
+              color: 'white',
+              fontFamily: 'Poppins',
+              textTransform: 'none',
+              fontSize: '11px',
+              py: 0.5,
+              '&:hover': {
+                backgroundColor: walletConnected ? '#b71c1c' : '#0a1a6b'
+              }
+            }}
+            onClick={walletConnected ? handleDisconnectWallet : handleSyncWallet}
+          >
+            {walletConnected ? 'Disconnect Wallet' : 'Sync Wallet'}
+          </Button>
+          </Box>
+        </Box>
+      </Box>
+{/* marker */}
+<Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <Box sx={{ 
+          bgcolor: 'white', 
+          borderBottom: '1px solid #e0e0e0',
+          px: 4,
+          py: 2,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Typography sx={{ fontWeight: 'bold', fontSize: '24px', fontFamily: 'Poppins' }}>
+            NOTE DETAILS
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            {!isDialogOpenUpdate ? (
+              <>
+                <Button
+                  variant="contained"
+                  startIcon={<EditIcon />}
+                  sx={{
+                    backgroundColor: '#091057',
+                    color: 'white',
+                    fontFamily: 'Poppins',
+                    textTransform: 'none',
+                    '&:hover': {
+                      backgroundColor: '#0a1a6b'
+                    }
+                  }}
+                  onClick={() => setIsDialogOpenUpdate(true)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  sx={{
+                    fontFamily: 'Poppins',
+                    textTransform: 'none',
+                  }}
+                  onClick={() => {
+                    setSelectedNote(currentData);
+                    setConfirm(true);
+                  }}
+                >
+                  Delete
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="contained"
+                  startIcon={<SaveIcon />}
+                  sx={{
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    fontFamily: 'Poppins',
+                    textTransform: 'none',
+                    '&:hover': {
+                      backgroundColor: '#45a049'
+                    }
+                  }}
+                  onClick={handleUpdateSubmit}
+                >
+                  Save
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<CancelIcon />}
+                  sx={{
+                    fontFamily: 'Poppins',
+                    textTransform: 'none',
+                  }}
+                  onClick={() => {
+                    setUpdateData(currentData);
+                    setIsDialogOpenUpdate(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </>
+            )}
+          </Box>
+        </Box>
+
+        {/* Content Area */}
+        <Box sx={{ flex: 1, p: 4, overflow: 'auto' }}>
+          <Card sx={{ 
+            maxWidth: 800,
+            mx: 'auto',
+            borderRadius: 3,
+            boxShadow: 2
+          }}>
+            <CardContent sx={{ p: 4 }}>
+              {/* Title Section */}
+              <Box sx={{ mb: 4 }}>
+                <Typography sx={{ 
+                  fontFamily: 'Poppins', 
+                  fontSize: '12px', 
+                  color: '#999',
+                  mb: 1
+                }}>
+                  TITLE
+                </Typography>
+                {isDialogOpenUpdate ? (
                   <TextField
-                    label="Title"
+                    fullWidth
                     name="title"
-                    variant="outlined"
                     value={updateData.title}
                     onChange={handleUpdateChange}
-                    fullWidth
-                    required
-                  />
-                  <TextField
-                    label="Notes"
-                    name="noteText"
                     variant="outlined"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        fontFamily: 'Poppins',
+                        fontSize: '24px',
+                        fontWeight: 'bold',
+                      }
+                    }}
+                  />
+                ) : (
+                  <Typography sx={{ 
+                    fontFamily: 'Poppins', 
+                    fontSize: '28px', 
+                    fontWeight: 'bold',
+                    color: '#091057'
+                  }}>
+                    {currentData.title}
+                  </Typography>
+                )}
+              </Box>
+
+              {/* Metadata */}
+              <Box sx={{ display: 'flex', gap: 4, mb: 4, pb: 3, borderBottom: '1px solid #e0e0e0' }}>
+                <Box>
+                  <Typography sx={{ fontFamily: 'Poppins', fontSize: '12px', color: '#999', mb: 0.5 }}>
+                    Created
+                  </Typography>
+                  <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px', color: '#333' }}>
+                    {new Date(currentData.createdAt).toLocaleString()}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography sx={{ fontFamily: 'Poppins', fontSize: '12px', color: '#999', mb: 0.5 }}>
+                    Last Updated
+                  </Typography>
+                  <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px', color: '#333' }}>
+                    {new Date(currentData.updatedAt).toLocaleString()}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Content Section */}
+              <Box>
+                <Typography sx={{ 
+                  fontFamily: 'Poppins', 
+                  fontSize: '12px', 
+                  color: '#999',
+                  mb: 2
+                }}>
+                  CONTENT
+                </Typography>
+                {isDialogOpenUpdate ? (
+                  <TextField
+                    fullWidth
+                    name="noteText"
                     value={updateData.noteText}
                     onChange={handleUpdateChange}
-                    fullWidth
-                    required
+                    variant="outlined"
+                    multiline
+                    rows={8}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        fontFamily: 'Poppins',
+                        fontSize: '16px',
+                      }
+                    }}
                   />
-                </Box>
-        </DialogContent>
+                ) : (
+                  <Box sx={{
+                    bgcolor: '#f9f9f9',
+                    borderRadius: 2,
+                    p: 3,
+                    minHeight: 200,
+                    border: '1px solid #e0e0e0'
+                  }}>
+                    <Typography sx={{ 
+                      fontFamily: 'Poppins', 
+                      fontSize: '16px',
+                      lineHeight: 1.8,
+                      color: '#333',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {currentData.noteText}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </CardContent>
+          </Card>
+        </Box>
+      </Box>
 
-        <DialogActions>
-          <Button
-          onClick={() => setIsDialogOpenUpdate(false)}
-          type='submit'
-            variant="contained"
-            sx={{
-              backgroundColor: "#EC8305",
-              color: "white",
-              fontFamily: "Poppins",
-              textTransform: "none",
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={confirm} onClose={() => setConfirm(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontFamily: 'Poppins', fontWeight: 'bold', color: '#091057' }}>
+          Delete Note?
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontFamily: 'Poppins' }}>
+            Are you sure you want to delete "{selectedNote?.title}"? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button 
+            onClick={() => setConfirm(false)} 
+            sx={{ 
+              fontFamily: 'Poppins', 
+              textTransform: 'none' 
             }}
           >
-            Update Note
+            Cancel
+          </Button>
+          <Button 
+            onClick={confirmDeleteTask} 
+            variant="contained"
+            color="error"
+            sx={{ 
+              fontFamily: 'Poppins', 
+              textTransform: 'none' 
+            }}
+          >
+            Delete
           </Button>
         </DialogActions>
-        </form>
       </Dialog>
-      </Box>
-          {/* Delete Confirmation Dialog */}
-          <Dialog open={confirm} onClose={() => setConfirm(false)}>
-            <DialogTitle>Are you sure you want to delete this task?</DialogTitle>
-            <DialogContent>
-              <DialogContentText>This action cannot be undone.</DialogContentText>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={confirmDeleteTask} color="primary">Yes</Button>
-              <Button onClick={() => setConfirm(false)} color="secondary">No</Button>
-            </DialogActions>
-          </Dialog>
 
-          {/* Transaction Confirmation Dialog */}
-          <Dialog open={showTransactionDialog} onClose={handleCloseTransactionDialog} maxWidth="sm" fullWidth>
+      {/* Transaction Confirmation Dialog */}
+      <Dialog open={showTransactionDialog} onClose={handleCloseTransactionDialog} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ bgcolor: "#091057", color: "white", fontFamily: "Poppins", fontWeight: "bold" }}>
           ✅ {transactionInfo?.type} Transaction Logged
         </DialogTitle>
@@ -548,76 +810,49 @@ const handleUpdateChange = (e) => {
           {transactionInfo && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Box>
-                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Note Title:</Typography>
-                <Typography>{transactionInfo.noteTitle}</Typography>
+                <Typography sx={{ fontWeight: "bold", color: "#091057", fontFamily: "Poppins" }}>Note Title:</Typography>
+                <Typography sx={{ fontFamily: "Poppins" }}>{transactionInfo.noteTitle}</Typography>
+              </Box>
+              {transactionInfo.noteText && (
+                <Box>
+                  <Typography sx={{ fontWeight: "bold", color: "#091057", fontFamily: "Poppins" }}>Note Text:</Typography>
+                  <Typography sx={{ fontFamily: "Poppins" }}>{transactionInfo.noteText}</Typography>
+                </Box>
+              )}
+              <Box>
+                <Typography sx={{ fontWeight: "bold", color: "#091057", fontFamily: "Poppins" }}>Action:</Typography>
+                <Typography sx={{ fontFamily: "Poppins" }}>{transactionInfo.type}</Typography>
               </Box>
               <Box>
-                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Note Text:</Typography>
-                <Typography>{transactionInfo.noteText}</Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Action:</Typography>
-                <Typography>{transactionInfo.type}</Typography>
-              </Box>
-              <Box>
-                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Transaction ID:</Typography>
+                <Typography sx={{ fontWeight: "bold", color: "#091057", fontFamily: "Poppins" }}>Transaction ID:</Typography>
                 <Typography sx={{ wordBreak: "break-all", fontFamily: "monospace" }}>
                   {transactionInfo.transactionId}
                 </Typography>
               </Box>
               <Box>
-                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Network:</Typography>
-                <Typography>{transactionInfo.network}</Typography>
+                <Typography sx={{ fontWeight: "bold", color: "#091057", fontFamily: "Poppins" }}>Network:</Typography>
+                <Typography sx={{ fontFamily: "Poppins" }}>{transactionInfo.network}</Typography>
               </Box>
               <Box>
-                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Fee:</Typography>
-                <Typography>{formatLovelaceToAda(transactionInfo.fee)}</Typography>
+                <Typography sx={{ fontWeight: "bold", color: "#091057", fontFamily: "Poppins" }}>Fee:</Typography>
+                <Typography sx={{ fontFamily: "Poppins" }}>{formatLovelaceToAda(transactionInfo.fee)}</Typography>
               </Box>
               <Box>
-                <Typography sx={{ fontWeight: "bold", color: "#091057" }}>Wallet:</Typography>
-                <Typography>{transactionInfo.wallet}</Typography>
+                <Typography sx={{ fontWeight: "bold", color: "#091057", fontFamily: "Poppins" }}>Wallet:</Typography>
+                <Typography sx={{ fontFamily: "Poppins" }}>{transactionInfo.wallet}</Typography>
               </Box>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseTransactionDialog} sx={{ color: "#091057" }}>
+          <Button onClick={handleCloseTransactionDialog} sx={{ color: "#091057", fontFamily: "Poppins", textTransform: "none" }}>
             Close
           </Button>
         </DialogActions>
       </Dialog>
-      
-      {/* Footer */}
-      <Box
-        bgcolor="#091057"
-        padding={3}
-        color="white"
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        marginTop="auto"
-      >
-        <Box display="flex" gap={3} marginBottom={2}>
-          <Typography component="button">
-            <i className="fab fa-facebook" style={{ color: "white", fontSize: "20px" }}></i>
-          </Typography>
-          <Typography component="button">
-            <i className="fab fa-instagram" style={{ color: "white", fontSize: "20px" }}></i>
-          </Typography>
-          <Typography component="button">
-            <i className="fab fa-twitter" style={{ color: "white", fontSize: "20px" }}></i>
-          </Typography>
-        </Box>
-        <Box display="flex" gap={3} fontFamily="Poppins" fontSize="14px">
-          <Typography>Home</Typography>
-          <Typography>About</Typography>
-          <Typography>Team</Typography>
-          <Typography>Services</Typography>
-          <Typography>Contact</Typography>
-        </Box>
-      </Box>
-    </div>
+      {/* end of marker */}
+       </Box>
   );
 }
 
-export default TaskUpdate;
+export default TaskDetails;

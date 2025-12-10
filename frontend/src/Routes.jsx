@@ -15,7 +15,7 @@ const RoutesConfig = ({ loggedInUserId, handleLogin }) => (
     {/*<Route path="/taskview/:toDoListID" element={<TaskView />} /> */}
     <Route path="/taskupdate/:taskId" element={<TaskUpdate/>}/>
     <Route path="/createTask" element={<TaskCreate/>}/>
-    <Route path="/taskdetails/" element={<TaskDetails/>}/>    
+    <Route path="/taskdetails/:noteId" element={<TaskDetails/>}/>  
   </Routes>
 );
 

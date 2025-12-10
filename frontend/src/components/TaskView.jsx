@@ -83,7 +83,26 @@ function TaskView() {
       return;
     }
 
-    // Try to connect to Lace wallet first, then fallback to other wallets
+    // Check localStorage first
+    const storedWalletName = localStorage.getItem('connectedWallet');
+    const storedWalletAddress = localStorage.getItem('walletAddress');
+
+    if (storedWalletName && storedWalletAddress) {
+      setWalletName(storedWalletName);
+      setWalletAddress(storedWalletAddress);
+      setWalletConnected(true);
+      setWalletSuccess(`Restored connection to ${storedWalletName}`);
+      
+      // Optionally fetch notes for this wallet
+      const res = await axios.get(
+        `http://localhost:8080/api/note/get/by-wallet/${storedWalletAddress}`
+      );
+      setNote(res.data);
+
+      return; // Skip connecting again
+    }
+
+    // Try to connect to wallets if nothing in localStorage
     const walletOptions = ['lace', 'eternl', 'flint', 'nami'];
     let connected = false;
     let connectedWalletName = '';
@@ -91,30 +110,32 @@ function TaskView() {
     for (const wallet of walletOptions) {
       if (window.cardano[wallet]) {
         try {
-          // This is the CIP-0030 enable() method that asks for permission
           const api = await window.cardano[wallet].enable();
           setWalletApi(api);
-          console.log("WalletAPI: ", api);
           if (api) {
-            // Get the wallet's unused addresses
-            const walletAddress = await api.getChangeAddress();
-            console.log("Wallet Address: ", walletAddress);
-            setWalletAddress(walletAddress);
+            const walletAddr = await api.getChangeAddress();
+            setWalletAddress(walletAddr);
             setWalletName(wallet);
             setWalletConnected(true);
+
+            // Save to localStorage
+            localStorage.setItem('connectedWallet', wallet);
+            localStorage.setItem('walletAddress', walletAddr);
+            localStorage.setItem('walletConnected', 'true');
+            localStorage.setItem('walletName', wallet);
+
+            // Fetch notes
             const res = await axios.get(
-              `http://localhost:8080/api/note/get/by-wallet/${walletAddress}`
+              `http://localhost:8080/api/note/get/by-wallet/${walletAddr}`
             );
             setNote(res.data);
-            localStorage.setItem('connectedWallet', connectedWalletName);
-            localStorage.setItem('walletAddress', walletAddress);
+
+            connected = true;
+            connectedWalletName = wallet;
+            break;
           }
-          connected = true;
-          connectedWalletName = wallet;
-          break;
-        } catch (error) {
-          // User rejected permission or other error, try next wallet
-          console.log(`Could not connect to ${wallet}:`, error.message);
+        } catch (err) {
+          console.log(`Could not connect to ${wallet}:`, err.message);
           continue;
         }
       }
@@ -124,8 +145,6 @@ function TaskView() {
       setWalletError('No Cardano wallet found or permission denied. Please install Lace, Eternl, Flint, or Nami wallet extension.');
     } else {
       setWalletSuccess(`Connected to ${connectedWalletName}`);
-      localStorage.setItem('connectedWallet', connectedWalletName);
-      localStorage.setItem('walletAddress', walletAddress);
     }
   } catch (error) {
     console.error('Error syncing wallet:', error);
@@ -133,11 +152,13 @@ function TaskView() {
   }
 };
 
+
 const handleDisconnectWallet = () => {
   // Remove ALL wallet data from localStorage
   localStorage.removeItem('connectedWallet');
   localStorage.removeItem('walletAddress');
-
+  localStorage.removeItem('walletConnected');
+  localStorage.removeItem('walletName');
   // Reset state
   setWalletConnected(false);
   setWalletName('');
@@ -150,13 +171,15 @@ const handleDisconnectWallet = () => {
   setWalletSuccess('Wallet disconnected successfully!');
 };
 
-  useEffect(() => {
+useEffect(() => {
   const fetchTasks = async () => {
+    if (!walletAddress) return; // no wallet connected, skip fetching
+
     try {
-      console.log("WalletAPI: ",api);
-      const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${walletAddress}`);
-      // Sort notes so newest is first
-      const sortedNotes = (response.data || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const response = await axios.get(`http://localhost:8080/api/note/get/by-wallet/${walletAddress}`);
+      const sortedNotes = (response.data || []).sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
       setNote(sortedNotes);
     } catch (error) {
       console.error('Error fetching note:', error);
@@ -165,6 +188,7 @@ const handleDisconnectWallet = () => {
 
   fetchTasks();
 }, [walletAddress]);
+
 
   const handleAddTaskClick = () => {
     setOpenAddDialog(true);
@@ -501,10 +525,9 @@ const handleDisconnectWallet = () => {
             <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
               {note.slice((currentPage - 1) * notesPerPage, currentPage * notesPerPage).map((task, index) => (
                 <Link 
-                  to={`/taskdetails`} 
-                  state={{ noteId: task.note_id }} 
+                  to={`/taskdetails/${task.noteId}`} 
                   style={{textDecoration:'none'}} 
-                  key={task.note_id}
+                  key={task.noteId}
                 >
                   <Card sx={{ 
                     width: 280, 
