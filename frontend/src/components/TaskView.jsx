@@ -41,8 +41,16 @@ function TaskView() {
 const theme = createTheme({
   palette: {
     mode: darkMode ? 'dark' : 'light',
+    background: {
+      default: darkMode ? '#1e1e1e' : '#f5f5f5',
+      paper: darkMode ? '#252525' : '#ffffff',
+    },
+    text: {
+      primary: darkMode ? '#eaeaea' : '#000000',
+    }
   },
 });
+
 
   const [newNote, setNewNote] = useState({
     title: '',
@@ -404,7 +412,12 @@ useEffect(() => {
   
  return (
   <ThemeProvider theme={theme}>
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: darkMode ? '#121212' : '#f5f5f5' }}>
+    <Box sx={{ 
+  display: 'flex', 
+  minHeight: '100vh', 
+  bgcolor: darkMode ? '#1e1e1e' : '#f5f5f5'
+}}>
+
 
       {/* Sidebar */}
       <Box sx={{ 
@@ -643,9 +656,18 @@ useEffect(() => {
           <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Typography sx={{ fontWeight: 'bold', fontSize: '18px', fontFamily: 'Poppins', mr: 3 }}>
-                  My Notes
-                </Typography>
+                <Typography 
+                sx={{ 
+                  fontWeight: 'bold', 
+                  fontSize: '18px', 
+                  fontFamily: 'Poppins', 
+                  mr: 3,
+                  color: darkMode ? '#ffffff' : '#000000'
+                }}
+              >
+                My Notes
+              </Typography>
+
                 <Box sx={{ display: 'flex', gap: 2 }}>
 
                   <Chip
