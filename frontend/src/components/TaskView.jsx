@@ -407,19 +407,69 @@ useEffect(() => {
       }}>
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#4CAF50' }} />
-            <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>All</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#2196F3' }} />
-            <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>Personal</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#FF5722' }} />
-            <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>Work</Typography>
-          </Box>
+
+  {/* ALL */}
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 2,
+      p: 1,
+      cursor: 'pointer',
+      borderRadius: 1,
+      transition: 'transform 0.15s ease-in-out',
+      '&:hover': {
+        bgcolor: '#f5f5f5',
+        transform: 'scale(1.03)',
+      },
+    }}
+  >
+    <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#4CAF50' }} />
+    <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>All</Typography>
+  </Box>
+
+  {/* PERSONAL */}
+  <Box
+    sx={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 2,
+      p: 1,
+      cursor: 'pointer',
+      borderRadius: 1,
+      transition: 'transform 0.15s ease-in-out',
+      '&:hover': {
+        bgcolor: '#f5f5f5',
+        transform: 'scale(1.03)',
+      },
+    }}
+  >
+          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#2196F3' }} />
+          <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>Personal</Typography>
         </Box>
+
+        {/* WORK */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            p: 1,
+            cursor: 'pointer',
+            borderRadius: 1,
+            transition: 'transform 0.15s ease-in-out',
+            '&:hover': {
+              bgcolor: '#f5f5f5',
+              transform: 'scale(1.03)',
+            },
+          }}
+        >
+          <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#FF5722' }} />
+          <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>Work</Typography>
+        </Box>
+
+      </Box>
+
 
         <Box sx={{ mt: 'auto', pt: 3 }}>
           <Box sx={{ 
@@ -449,16 +499,19 @@ useEffect(() => {
             variant="contained"
             size="small"
             sx={{
-              backgroundColor: walletConnected ? '#d32f2f' : '#091057',
-              color: 'white',
-              fontFamily: 'Poppins',
-              textTransform: 'none',
-              fontSize: '11px',
-              py: 0.5,
-              '&:hover': {
-                backgroundColor: walletConnected ? '#b71c1c' : '#0a1a6b'
-              }
-            }}
+            backgroundColor: walletConnected ? '#d32f2f' : '#091057',
+            color: 'white',
+            fontFamily: 'Poppins',
+            textTransform: 'none',
+            fontSize: '11px',
+            py: 0.5,
+            transition: 'transform 0.15s ease-in-out',
+            '&:hover': {
+              backgroundColor: walletConnected ? '#b71c1c' : '#0a1a6b',
+              transform: 'scale(1.05)',
+            }
+          }}
+
             onClick={walletConnected ? handleDisconnectWallet : handleSyncWallet}
           >
             {walletConnected ? 'Disconnect Wallet' : 'Sync Wallet'}
@@ -497,12 +550,17 @@ useEffect(() => {
               }}
               sx={{
                 width: '300px',
+                transition: 'transform 0.15s ease-in-out',
+                '&:hover': {
+                  transform: 'scale(1.03)',    // search hover effect
+                },
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 2,
                   bgcolor: '#f5f5f5',
                   '& fieldset': { border: 'none' }
                 }
               }}
+
             />
             <Button
               component={Link}
@@ -513,8 +571,13 @@ useEffect(() => {
                 bgcolor: '#091057',
                 color: 'white',
                 textTransform: 'none',
-                '&:hover': { bgcolor: '#0a1a6b' }
+                transition: 'transform 0.15s ease-in-out',
+                '&:hover': {
+                  bgcolor: '#0a1a6b',
+                  transform: 'scale(1.05)',   // expand on hover
+                }
               }}
+
             >
               Transaction History
             </Button>
@@ -556,10 +619,47 @@ useEffect(() => {
                   My Notes
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 2 }}>
-                  <Chip label="Todays" size="small" />
-                  <Chip label="This Week" size="small" variant="outlined" />
-                  <Chip label="This Month" size="small" variant="outlined" />
+
+                  <Chip
+                    label="Todays"
+                    size="small"
+                    sx={{
+                      transition: 'transform 0.15s ease-in-out',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        transform: 'scale(1.03)',
+                      },
+                    }}
+                  />
+
+                  <Chip
+                    label="This Week"
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      transition: 'transform 0.15s ease-in-out',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        transform: 'scale(1.03)',
+                      },
+                    }}
+                  />
+
+                  <Chip
+                    label="This Month"
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      transition: 'transform 0.15s ease-in-out',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        transform: 'scale(1.03)',
+                      },
+                    }}
+                  />
+
                 </Box>
+
               </Box>
              
             </Box>
@@ -632,20 +732,23 @@ useEffect(() => {
               {/* New Note Card */}
               <Card 
                 onClick={walletConnected ? handleAddTaskClick : undefined}
-                sx={{ 
-                  width: 280, 
-                  height: 180,
-                  border: '2px dashed #ccc',
-                  bgcolor: 'transparent',
-                  borderRadius: 3,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  '&:hover': {
-                    bgcolor: '#f5f5f5'
-                  }
-                }}
+                sx={{
+                width: 280,
+                height: 180,
+                border: '2px dashed #ccc',
+                bgcolor: 'transparent',
+                borderRadius: 3,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'transform 0.15s ease-in-out',
+                '&:hover': {
+                  bgcolor: '#f5f5f5',
+                  transform: 'scale(1.03)',   // slight enlarge
+                }
+              }}
+
               >
                 <Box sx={{ textAlign: 'center' }}>
                   <AddIcon sx={{ fontSize: 40, color: '#999', mb: 1 }} />
