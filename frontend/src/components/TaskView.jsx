@@ -21,6 +21,7 @@ import { loadNotes, saveNotes, upsertNote } from '../store';
 import HistoryIcon from '@mui/icons-material/History';
 
 function TaskView() {
+  const [dateFilter, setDateFilter] = useState("all");
   const noteColors = ['#FFF9C4', '#FFCCBC', '#B3E5FC', '#C5E1A5', '#F8BBD0'];
   const userId = localStorage.getItem('loggedInUserId');
   const [note, setNote] = useState([]);
@@ -38,6 +39,7 @@ function TaskView() {
   const [walletApi, setWalletApi] = useState();
   const [searchQuery, setSearchQuery] = useState('');
   const [darkMode, setDarkMode] = useState(false);
+
 const theme = createTheme({
   palette: {
     mode: darkMode ? 'dark' : 'light',
@@ -409,7 +411,38 @@ useEffect(() => {
     setSortOrder(order);
     handleMenuClose();  // Close the menu after sorting
   };
-  
+  const filterNotesByDate = (notes) => {
+  const now = new Date();
+
+  return notes.filter((task) => {
+    const created = new Date(task.createdAt);
+
+    // TODAY
+    if (dateFilter === "today") {
+      return created.toDateString() === now.toDateString();
+    }
+
+    // THIS WEEK
+    if (dateFilter === "week") {
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      return created >= startOfWeek;
+    }
+
+    // THIS MONTH
+    if (dateFilter === "month") {
+      return (
+        created.getMonth() === now.getMonth() &&
+        created.getFullYear() === now.getFullYear()
+      );
+    }
+
+    return true; // "all"
+  });
+};
+
  return (
   <ThemeProvider theme={theme}>
     <Box sx={{ 
@@ -670,43 +703,39 @@ useEffect(() => {
 
                 <Box sx={{ display: 'flex', gap: 2 }}>
 
-                  <Chip
-                    label="Todays"
-                    size="small"
-                    sx={{
-                      transition: 'transform 0.15s ease-in-out',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        transform: 'scale(1.03)',
-                      },
-                    }}
-                  />
+                 <Chip 
+                  label="Today" 
+                  size="small"
+                  onClick={() => setDateFilter("today")}
+                  sx={{
+                    cursor: 'pointer',
+                    transition: 'transform 0.15s ease-in-out',
+                    '&:hover': { transform: 'scale(1.03)' }
+                  }}
+                />
 
-                  <Chip
-                    label="This Week"
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      transition: 'transform 0.15s ease-in-out',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        transform: 'scale(1.03)',
-                      },
-                    }}
-                  />
+                <Chip 
+                  label="This Week" 
+                  size="small"
+                  onClick={() => setDateFilter("week")}
+                  sx={{
+                    cursor: 'pointer',
+                    transition: 'transform 0.15s ease-in-out',
+                    '&:hover': { transform: 'scale(1.03)' }
+                  }}
+                />
 
-                  <Chip
-                    label="This Month"
-                    size="small"
-                    variant="outlined"
-                    sx={{
-                      transition: 'transform 0.15s ease-in-out',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        transform: 'scale(1.03)',
-                      },
-                    }}
-                  />
+                <Chip 
+                  label="This Month" 
+                  size="small"
+                  onClick={() => setDateFilter("month")}
+                  sx={{
+                    cursor: 'pointer',
+                    transition: 'transform 0.15s ease-in-out',
+                    '&:hover': { transform: 'scale(1.03)' }
+                  }}
+                />
+
 
                 </Box>
 
@@ -715,7 +744,9 @@ useEffect(() => {
             </Box>
 
             <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              {note.slice((currentPage - 1) * notesPerPage, currentPage * notesPerPage).map((task, index) => (
+              {filterNotesByDate(note)
+  .slice((currentPage - 1) * notesPerPage, currentPage * notesPerPage)
+  .map((task, index) => (
                 <Link 
                   to={`/taskdetails/${task.noteId}`} 
                   style={{textDecoration:'none'}} 
