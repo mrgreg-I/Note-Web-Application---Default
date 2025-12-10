@@ -12,6 +12,8 @@ import WalletIcon from '@mui/icons-material/Wallet';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert, Pagination } from '@mui/material';
 import Logo from "../assets/Logo1.png";
+import { pollTx, sendTransaction } from '../blockchain';
+import { loadNotes, saveNotes, upsertNote } from '../store';
 
 function TaskView() {
 
@@ -96,6 +98,10 @@ function TaskView() {
             setWalletAddress(walletAddress);
             setWalletName(wallet);
             setWalletConnected(true);
+            const res = await axios.get(
+              `http://localhost:8080/api/note/get/by-wallet/${walletAddress}`
+            );
+            setNote(res.data);
           }
           connected = true;
           connectedWalletName = wallet;
@@ -121,6 +127,20 @@ function TaskView() {
   }
 };
 
+const handleDisconnectWallet = () => {
+  // Clear wallet info from local storage
+  localStorage.removeItem('connectedWallet');
+  localStorage.removeItem('walletAddress');
+
+  // Set the wallet-related states to their initial values
+  setWalletConnected(false);
+  setWalletName('');
+  setWalletAddress('');
+  setNote([]); // Clear the notes when wallet is disconnected
+
+  // Optionally, you can also display a success message or alert
+  setWalletSuccess('Wallet disconnected successfully!');
+};
 
   useEffect(() => {
   const fetchTasks = async () => {
@@ -370,6 +390,23 @@ function TaskView() {
     >
       {walletConnected ? `Wallet: ${walletName}` : "Sync to Wallet"}
     </Button>
+     {walletConnected && (
+    <Button
+      variant="contained"
+      color="error"
+      startIcon={<ArrowBackIcon />}
+      sx={{
+        backgroundColor: "#f44336",
+        color: "white",
+        fontFamily: "Poppins",
+        textTransform: "none",
+      }}
+      onClick={handleDisconnectWallet}
+      title="Disconnect Wallet"
+    >
+      Disconnect
+    </Button>
+  )}
     <Button
       variant="contained"
       startIcon={<AddIcon />}
