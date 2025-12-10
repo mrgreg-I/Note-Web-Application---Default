@@ -2,15 +2,10 @@ package com.example.csit360.entity;
 
 import java.time.LocalDateTime;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -24,11 +19,9 @@ public class Note {
     private String noteText;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "userId")
-    @JsonBackReference
-	private User user;
+    private String status = "pending"; // pending or confirmed
+    private String txhash; // Transaction hash from blockchain
+    private String walletAddress; // Wallet address that created the not
 
     public Note() {
     }
@@ -81,13 +74,28 @@ public class Note {
         this.updatedAt=LocalDateTime.now();
     }
 
-    public User getUser() {
-        return user;
+
+    public String getStatus() {
+        return status;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setStatus(String status) {
+        this.status = status;
     }
 
-    
+    public String getTxhash() {
+        return txhash;
+    }
+
+    public void setTxhash(String txhash) {
+        this.txhash = txhash;
+    }
+
+    public String getWalletAddress() {
+        return walletAddress;
+    }
+
+    public void setWalletAddress(String walletAddress) {
+        this.walletAddress = walletAddress;
+    }
 }

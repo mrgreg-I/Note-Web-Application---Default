@@ -6,37 +6,29 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.csit360.entity.Note;
-import com.example.csit360.entity.User;
 import com.example.csit360.repository.NoteRepository;
-import com.example.csit360.repository.UserRepository;
+
 @Service
 public class NoteService {
     @Autowired
     private NoteRepository noteRepo;
-    private UserRepository userRepo;
 
-     public NoteService(){
+    public NoteService(){
         super();
     }
+
     @Autowired
-    public NoteService(NoteRepository noteRepo,UserRepository userRepo) {
+    public NoteService(NoteRepository noteRepo) {
         this.noteRepo = noteRepo;
-        this.userRepo = userRepo;
     }
 
-public Note postNote(Note note, Long userId) {
-    try {
-        User user = userRepo.findById(userId).orElse(null);
-        if (user != null) { 
-            note.setUser(user);
+    public Note postNote(Note note) {
+        try {
             return noteRepo.save(note);  
-        } else {
-            throw new IllegalArgumentException("Invalid user ID: " + userId);
+        } catch (Exception e) {
+            throw new RuntimeException("Error occurred while saving the Note: " + e.getMessage(), e);
         }
-    } catch (Exception e) {
-        throw new RuntimeException("Error occurred while saving the Note: " + e.getMessage(), e);
     }
-}
     
     public List<Note> getAllNotes(){
         return noteRepo.findAll();
@@ -47,28 +39,28 @@ public Note postNote(Note note, Long userId) {
     }
 
     public Note updateNote(Long id, Note newNote) {
-    Note existingNote = findNoteById(id);
-    if (existingNote == null) {
-        throw new IllegalArgumentException("Note with id " + id + " not found.");
-    }
-    if (newNote != null) {
-        if (newNote.getTitle() != null) {
-            existingNote.setTitle(newNote.getTitle());
+        Note existingNote = findNoteById(id);
+        if (existingNote == null) {
+            throw new IllegalArgumentException("Note with id " + id + " not found.");
         }
-        if (newNote.getNoteText() != null) {
-            existingNote.setNoteText(newNote.getNoteText());
+        if (newNote != null) {
+            if (newNote.getTitle() != null) {
+                existingNote.setTitle(newNote.getTitle());
+            }
+            if (newNote.getNoteText() != null) {
+                existingNote.setNoteText(newNote.getNoteText());
+            }
+            existingNote.setUpdatedAt(java.time.LocalDateTime.now());
+            return noteRepo.save(existingNote);
         }
-        existingNote.setUpdatedAt(java.time.LocalDateTime.now());
-        return noteRepo.save(existingNote);
+        return existingNote;
     }
-    return existingNote;
-}
     
     public void deleteNote(Long id){
         noteRepo.deleteById(id);
     }
 
-    public List<Note> findByUserUserId(Long userId) {
-        return noteRepo.findByUserUserId(userId);
+    public List<Note> getNotesByWallet(String wallet){
+        return noteRepo.findNotesByWalletAddress(wallet);
     }
 }
