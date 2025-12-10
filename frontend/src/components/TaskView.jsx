@@ -42,7 +42,8 @@ function TaskView() {
 
       try {
         const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
-        setNote(response.data || []);
+        setNote(sortNotes(response.data || [], sortType));
+
       } catch (error) {
         console.error('Error fetching note:', error);
       }
@@ -50,6 +51,7 @@ function TaskView() {
 
     fetchTasks();
   }, [userId]);
+  const [sortType, setSortType] = useState("Newest");
 
   const handleAddTaskClick = () => setOpenAddDialog(true);
   const handleCloseDialog = () => setOpenAddDialog(false);
@@ -69,7 +71,23 @@ function TaskView() {
         });
       })
       .catch(error => console.error("Error posting task:", error));
-  };
+        };
+        const sortNotes = (notes, type) => {
+        let sorted = [...notes];
+
+        if (type === "Newest") {
+          sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        } 
+        else if (type === "Oldest") {
+          sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        }
+        else if (type === "Alphabetical") {
+          sorted.sort((a, b) => a.title.localeCompare(b.title));
+        }
+
+        return sorted;
+      };
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -202,21 +220,44 @@ function TaskView() {
             List
           </Typography>
 
-          <Box sx={{ marginLeft: "auto" }}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              sx={{
-                backgroundColor: "#EC8305",
-                color: "white",
-                fontFamily: "Poppins",
-                textTransform: "none",
-              }}
-              onClick={handleAddTaskClick}
-            >
-              Add Note
-            </Button>
-          </Box>
+          <Box display="flex" alignItems="center" gap={2}>
+
+  {/* SORT DROPDOWN */}
+  <FormControl size="small" sx={{ minWidth: 140 }}>
+    <Select
+      value={sortType}
+      onChange={(e) => {
+        setSortType(e.target.value);
+        setNote(sortNotes(note, e.target.value));
+      }}
+      sx={{
+        backgroundColor: darkMode ? "#333" : "white",
+        color: darkMode ? "white" : "#091057",
+        fontFamily: "Poppins",
+      }}
+    >
+      <MenuItem value="Newest">Newest</MenuItem>
+      <MenuItem value="Oldest">Oldest</MenuItem>
+      <MenuItem value="Alphabetical">A – Z</MenuItem>
+    </Select>
+  </FormControl>
+
+  {/* ADD NOTE BUTTON */}
+  <Button
+    variant="contained"
+    startIcon={<AddIcon />}
+    sx={{
+      backgroundColor: "#EC8305",
+      color: "white",
+      fontFamily: "Poppins",
+      textTransform: "none",
+    }}
+    onClick={handleAddTaskClick}
+  >
+    Add Note
+  </Button>
+</Box>
+
         </Box>
 
         {/* TASK CARDS */}
