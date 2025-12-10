@@ -9,6 +9,5 @@ import com.example.csit360.entity.Note;
 
 @Repository
 public interface NoteRepository extends JpaRepository<Note, Long>{
-    List<Note> findByStatus(String status);
-    List<Note> findNotesByWalletAddress(String wallet);
+    List<Note> findByUserUserId(Long userId);
 }
