@@ -46,14 +46,16 @@ public class NoteController {
     @PostMapping("/post")
     public ResponseEntity<Map<String, Object>> postNote(
         @RequestBody Note note,
-        @RequestParam(required = false) String walletAddress) {
+        @RequestParam(required = false) String walletAddress,
+        @RequestParam(required = false) String txhash) {
         try {
-            // If wallet address is provided (hex or bech32 format), store with blockchain logging
-            // hex format example: 00cd4cab880a09fdfa13135544f7c8976fd13923cd33237a1b36c7e69ca6a12879d6d84e98fc98940221daea9e86a329c89cd6e45cd6ae2b05
+            // If wallet address is provided, store with blockchain logging
+            // txhash can be provided from frontend (from Blaze SDK transaction or simulated)
             if (walletAddress != null && !walletAddress.isEmpty()) {
                 Map<String, Object> response = blockchainTransactionService.storeNoteWithBlockchainLogging(
                     note,
                     walletAddress,
+                    txhash,
                     "CREATE"
                 );
                 return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -75,16 +77,18 @@ public class NoteController {
     public ResponseEntity<Map<String, Object>> updateNote(
         @PathVariable Long id,
         @RequestBody Note newNote,
-        @RequestParam(required = false) String walletAddress) {
+        @RequestParam(required = false) String walletAddress,
+        @RequestParam(required = false) String txhash) {
         try {
             // Set the ID to ensure we're updating the right note
             newNote.setNoteId(id);
             
-            // If wallet address is provided (hex or bech32 format), store with blockchain logging
+            // If wallet address is provided, store with blockchain logging
             if (walletAddress != null && !walletAddress.isEmpty()) {
                 Map<String, Object> response = blockchainTransactionService.storeUpdatedNoteWithBlockchainLogging(
                     newNote,
-                    walletAddress
+                    walletAddress,
+                    txhash
                 );
                 return ResponseEntity.ok(response);
             } else {
@@ -104,13 +108,15 @@ public class NoteController {
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<Map<String, Object>> deleteNote(
         @PathVariable Long id,
-        @RequestParam(required = false) String walletAddress) {
+        @RequestParam(required = false) String walletAddress,
+        @RequestParam(required = false) String txhash) {
         try {
-            // If wallet address is provided (hex or bech32 format), store with blockchain logging
+            // If wallet address is provided, store with blockchain logging
             if (walletAddress != null && !walletAddress.isEmpty()) {
                 Map<String, Object> response = blockchainTransactionService.storeDeletedNoteWithBlockchainLogging(
                     id,
-                    walletAddress
+                    walletAddress,
+                    txhash
                 );
                 return ResponseEntity.ok(response);
             } else {

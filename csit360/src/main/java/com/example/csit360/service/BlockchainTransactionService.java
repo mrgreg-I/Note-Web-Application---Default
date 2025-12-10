@@ -31,13 +31,14 @@ public class BlockchainTransactionService {
      * 
      * @param note The note to store
      * @param walletAddress The wallet address (hex or bech32 format)
+     * @param txhash The transaction hash provided by frontend (optional, will generate if null)
      * @param action The action type (CREATE, UPDATE, DELETE)
      * @return Map containing saved note and transaction info
      */
-    public Map<String, Object> storeNoteWithBlockchainLogging(Note note, String walletAddress, String action) {
+    public Map<String, Object> storeNoteWithBlockchainLogging(Note note, String walletAddress, String txhash, String action) {
         try {
-            // Step 1: Generate a transaction hash (simulated)
-            String txHash = generateTransactionHash();
+            // Step 1: Use provided transaction hash, or generate if not provided
+            String txHash = (txhash != null && !txhash.isEmpty()) ? txhash : generateTransactionHash();
             
             // Step 2: Set blockchain-related fields on the note
             note.setStatus("pending");
@@ -72,12 +73,13 @@ public class BlockchainTransactionService {
      * 
      * @param note The updated note
      * @param walletAddress The wallet address (hex or bech32 format)
+     * @param txhash The transaction hash provided by frontend (optional, will generate if null)
      * @return Map containing updated note and transaction info
      */
-    public Map<String, Object> storeUpdatedNoteWithBlockchainLogging(Note note, String walletAddress) {
+    public Map<String, Object> storeUpdatedNoteWithBlockchainLogging(Note note, String walletAddress, String txhash) {
         try {
-            // Generate new transaction hash for the update
-            String txHash = generateTransactionHash();
+            // Use provided transaction hash, or generate if not provided
+            String txHash = (txhash != null && !txhash.isEmpty()) ? txhash : generateTransactionHash();
             
             // Set blockchain fields
             note.setStatus("pending");
@@ -112,16 +114,17 @@ public class BlockchainTransactionService {
      * 
      * @param noteId The ID of the note being deleted
      * @param walletAddress The wallet address (hex or bech32 format)
+     * @param txhash The transaction hash provided by frontend (optional, will generate if null)
      * @return Map containing transaction info
      */
-    public Map<String, Object> storeDeletedNoteWithBlockchainLogging(Long noteId, String walletAddress) {
+    public Map<String, Object> storeDeletedNoteWithBlockchainLogging(Long noteId, String walletAddress, String txhash) {
         try {
             // Fetch the note to be deleted
             Note note = noteRepository.findById(noteId)
                 .orElseThrow(() -> new RuntimeException("Note not found: " + noteId));
             
-            // Generate transaction hash for deletion
-            String txHash = generateTransactionHash();
+            // Use provided transaction hash, or generate if not provided
+            String txHash = (txhash != null && !txhash.isEmpty()) ? txhash : generateTransactionHash();
             
             // Set blockchain fields
             note.setStatus("pending");
