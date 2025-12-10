@@ -4,6 +4,7 @@ import {Blockfrost, WebWallet, Blaze, Core} from '@blaze-cardano/sdk'
 import { useNavigate, Link, useParams } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import AddIcon from '@mui/icons-material/Add';
@@ -36,6 +37,13 @@ function TaskView() {
   const [walletSuccess, setWalletSuccess] = useState('');
   const [walletApi, setWalletApi] = useState();
   const [searchQuery, setSearchQuery] = useState('');
+  const [darkMode, setDarkMode] = useState(false);
+const theme = createTheme({
+  palette: {
+    mode: darkMode ? 'dark' : 'light',
+  },
+});
+
   const [newNote, setNewNote] = useState({
     title: '',
     noteText: '',
@@ -271,7 +279,7 @@ useEffect(() => {
       updatedAt: new Date().toISOString(),
       user: { userId }
     });
-
+      
     // 6. Refresh notes by wallet
     const res = await axios.get(
       `http://localhost:8080/api/note/get/by-wallet/${walletAddress}`
@@ -378,7 +386,7 @@ useEffect(() => {
       }));
     }
   };
-
+  
   // Menu handling for filtering and sorting
   const [anchorEl, setAnchorEl] = useState(null);
   const handleMenuClick = (event) => {
@@ -393,9 +401,11 @@ useEffect(() => {
     setSortOrder(order);
     handleMenuClose();  // Close the menu after sorting
   };
+  
+ return (
+  <ThemeProvider theme={theme}>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: darkMode ? '#121212' : '#f5f5f5' }}>
 
-  return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f5f5f5' }}>
       {/* Sidebar */}
       <Box sx={{ 
         width: '250px', 
@@ -580,7 +590,25 @@ useEffect(() => {
 
             >
               Transaction History
-            </Button>
+                      </Button>
+                      <Button
+            variant="contained"
+            onClick={() => setDarkMode(prev => !prev)}
+            sx={{
+              bgcolor: darkMode ? '#333' : '#091057',
+              color: 'white',
+              textTransform: 'none',
+              ml: 1,
+              transition: 'transform 0.15s ease-in-out',
+              '&:hover': {
+                bgcolor: darkMode ? '#444' : '#0a1a6b',
+                transform: 'scale(1.05)',
+              }
+            }}
+          >
+            {darkMode ? "Light Mode" : "Dark Mode"}
+          </Button>
+
           </Box>
         </Box>
 
@@ -868,6 +896,7 @@ useEffect(() => {
         </DialogActions>
       </Dialog>
     </Box>
+    </ThemeProvider>
   );
 }
 
