@@ -321,44 +321,39 @@ useEffect(() => {
         let tx = await blaze
         .newTransaction()
         .payLovelace(
-            Core.Address.fromBech32(
-                "addr_test1qq3ets7dxg8aure96num4zz7asrmy9nr8kgsy6t3jfdhv9yrv4w2has733mkknfv0q9ugh3vum305c5ywd65gmg5sn0qncs98a",
-            ),
-            lovelaceAmount, // Use defined variable
-        )
-        const metadata = new Map();
-        const label = 400129n;
-        const metadatumMap = new Core.MetadatumMap();
-        
-        metadatumMap.insert(
-          Core.Metadatum.newText("note"),
-          formatContent(note.noteText || "")
+          Core.Address.fromBech32(
+            "addr_test1qq3ets7dxg8aure96num4zz7asrmy9nr8kgsy6t3jfdhv9yrv4w2has733mkknfv0q9ugh3vum305c5ywd65gmg5sn0qncs98a"
+          ),
+          lovelaceAmount
         );
-        metadatumMap.insert(
-          Core.Metadatum.newText("created_at"),
-          Core.Metadatum.newText(new Date().toISOString())
-        );
-        const metadatum = Core.Metadatum.newMap(metadatumMap);
-        metadata.set(label, metadatum);
-        const finalMetadata = new Core.Metadata(metadata);
-        tx.setMetadata(finalMetadata);
-        
-        const completedTx = await tx.complete()
-        const signedTx = await blaze.signTransaction(completedTx)
-        const txId = await blaze.provider.postTransactionToChain(signedTx)
-        console.log("Transaction: ",tx.toCbor());
 
-        // Step #7
-        // Submit the transaction to the blockchain network
+      // Add metadata
+      const metadata = new Map();
+      const label = 400129n;
+      const metadatumMap = new Core.MetadatumMap();
+      metadatumMap.insert(
+        Core.Metadatum.newText("note"),
+        formatContent(note.noteText || "")
+      );
+      metadatumMap.insert(
+        Core.Metadatum.newText("created_at"),
+        Core.Metadatum.newText(new Date().toISOString())
+      );
+      metadata.set(label, Core.Metadatum.newMap(metadatumMap));
+      tx.setMetadata(new Core.Metadata(metadata));
 
-        // Optional: Print the transaction ID
-        console.log("Transaction ID", txId);
-        
-        // SUCCESS PATH: Return the transaction object
-        return { 
-            transactionId: txId, 
-            amount: lovelaceAmount, 
-        };
+      // Complete, sign, and submit
+      const completedTx = await tx.complete();  // 🔑 this will select UTxOs and compute fees
+      const signedTx = await blaze.signTransaction(completedTx);
+      const txId = await blaze.provider.postTransactionToChain(signedTx);
+
+      console.log("Transaction ID:", txId);
+      handleSyncWallet();
+      return {
+        transactionId: txId,
+        amount: lovelaceAmount,
+      };
+
       }
       catch(error){
         console.error("Error submitting transaction:",error);

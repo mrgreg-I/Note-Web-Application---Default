@@ -1,5 +1,9 @@
 package com.example.csit360.service;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -7,10 +11,6 @@ import com.example.csit360.entity.Note;
 import com.example.csit360.entity.TransactionHistory;
 import com.example.csit360.repository.NoteRepository;
 import com.example.csit360.repository.TransactionHistoryRepository;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 /**
  * Service to handle blockchain transaction simulation and note status tracking
@@ -142,52 +142,50 @@ public class BlockchainTransactionService {
      * @param txhash The transaction hash provided by frontend (optional, will generate if null)
      * @return Map containing transaction info
      */
-    public Map<String, Object> storeDeletedNoteWithBlockchainLogging(Long noteId, String walletAddress, String txhash) {
-        try {
-            // Fetch the note to be deleted
-            Note note = noteRepository.findById(noteId)
+    public Map<String, Object> storeDeletedNoteWithBlockchainLogging(
+        Long noteId, 
+        String walletAddress, 
+        String txhash
+) {
+    try {
+        // Fetch note
+        Note note = noteRepository.findById(noteId)
                 .orElseThrow(() -> new RuntimeException("Note not found: " + noteId));
-            
-            // Use provided transaction hash, or generate if not provided
-            String txHash = (txhash != null && !txhash.isEmpty()) ? txhash : generateTransactionHash();
-            
-            // Set blockchain fields
-            note.setStatus("pending");
-            note.setTxhash(txHash);
-            note.setWalletAddress(walletAddress);
-            
-            // Save the note with pending deletion status
-            Note savedNote = noteRepository.save(note);
-            
-            // Log transaction to TransactionHistory (immutable audit trail)
-            // IMPORTANT: Log BEFORE deletion so we have the transaction record
-            TransactionHistory transaction = new TransactionHistory(
+
+        // Use provided txhash or generate one
+        String txHash = (txhash != null && !txhash.isEmpty()) 
+                ? txhash 
+                : generateTransactionHash();
+
+        // Log transaction before deletion
+        TransactionHistory transaction = new TransactionHistory(
                 noteId,
                 "DELETE",
                 txHash,
                 walletAddress,
-                "pending"
-            );
-            transactionHistoryRepository.save(transaction);
-            
-            // Simulate blockchain transaction
-            Map<String, Object> simulatedTx = blockchainService.simulateNoteDeletionTransaction(
-                noteId,
-                walletAddress
-            );
-            
-            // Return response
-            Map<String, Object> response = new HashMap<>();
-            response.put("note", savedNote);
-            response.put("transaction", simulatedTx);
-            response.put("status", "pending");
-            response.put("txHash", txHash);
-            
-            return response;
-        } catch (Exception e) {
-            throw new RuntimeException("Error storing deleted note with blockchain logging: " + e.getMessage(), e);
-        }
+                "completed"      // <-- important, not pending
+        );
+        transactionHistoryRepository.save(transaction);
+
+        // DELETE the note from database
+        noteRepository.deleteById(noteId);
+
+        // Build response
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "deleted");
+        response.put("noteId", noteId);
+        response.put("txHash", txHash);
+        response.put("walletAddress", walletAddress);
+
+        return response;
+
+    } catch (Exception e) {
+        throw new RuntimeException(
+                "Error storing deleted note with blockchain logging: " + e.getMessage(), 
+                e
+        );
     }
+}
 
     /**
      * Update note status from pending to confirmed
