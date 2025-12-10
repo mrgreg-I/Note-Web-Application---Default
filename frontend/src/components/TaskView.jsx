@@ -10,16 +10,19 @@ import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import WalletIcon from '@mui/icons-material/Wallet';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert, Pagination } from '@mui/material';
+import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert, Pagination, InputAdornment, Card, CardContent, Chip } from '@mui/material';
 import Logo from "../assets/Logo1.png";
+import SearchIcon from '@mui/icons-material/Search';
+import MenuIcon from '@mui/icons-material/Menu';
+import FolderIcon from '@mui/icons-material/Folder';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { pollTx, sendTransaction } from '../blockchain';
 import { loadNotes, saveNotes, upsertNote } from '../store';
 
 function TaskView() {
-
+  const noteColors = ['#FFF9C4', '#FFCCBC', '#B3E5FC', '#C5E1A5', '#F8BBD0'];
   const userId = localStorage.getItem('loggedInUserId'); //
   console.log('userId from localStorage:', userId);
-
   const [note, setNote] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const notesPerPage = 20;
@@ -33,6 +36,7 @@ function TaskView() {
   const [walletError, setWalletError] = useState('');
   const [walletSuccess, setWalletSuccess] = useState('');
   const [walletApi, setWalletApi] = useState();
+  const [searchQuery, setSearchQuery] = useState('');
   const [newNote, setNewNote] = useState({
     title: '',
     noteText: '',
@@ -102,6 +106,8 @@ function TaskView() {
               `http://localhost:8080/api/note/get/by-wallet/${walletAddress}`
             );
             setNote(res.data);
+            localStorage.setItem('connectedWallet', connectedWalletName);
+            localStorage.setItem('walletAddress', walletAddress);
           }
           connected = true;
           connectedWalletName = wallet;
@@ -128,17 +134,19 @@ function TaskView() {
 };
 
 const handleDisconnectWallet = () => {
-  // Clear wallet info from local storage
+  // Remove ALL wallet data from localStorage
   localStorage.removeItem('connectedWallet');
   localStorage.removeItem('walletAddress');
 
-  // Set the wallet-related states to their initial values
+  // Reset state
   setWalletConnected(false);
   setWalletName('');
   setWalletAddress('');
-  setNote([]); // Clear the notes when wallet is disconnected
+  setWalletApi(null);
 
-  // Optionally, you can also display a success message or alert
+  // Clear notes
+  setNote([]);
+
   setWalletSuccess('Wallet disconnected successfully!');
 };
 
@@ -334,153 +342,311 @@ const handleDisconnectWallet = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" bgcolor="#091057" padding={2} color="white">
-        <Link to="/tasks">
-          <Button sx={{ width: 'auto', mr: 1 }}><img src={Logo} alt="Logo" style={{ maxWidth: "60px" }} /></Button>
-        </Link>
-        <Box display="flex" gap={3}>
-          <Link to="/tasks" style={{textDecoration:'none'}}>
-            <Typography sx={{ color: "white", fontFamily: "Poppins", fontSize: "16px", cursor: "pointer", textDecoration: "none", fontWeight: "bold" }}>
-              Home
-            </Typography>
-          </Link>
-          <Link to="/login" style={{textDecoration:'none'}}>
-            <Typography sx={{ color: "white", fontFamily: "Poppins", fontSize: "16px", cursor: "pointer", textDecoration: "none", fontWeight: "bold" }} onClick={() => {
-              localStorage.removeItem('authToken');
-              localStorage.removeItem('loggedInUserId');
-              navigate('/login');
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f5f5f5' }}>
+      {/* Sidebar */}
+      <Box sx={{ 
+        width: '250px', 
+        bgcolor: 'white', 
+        borderRight: '1px solid #e0e0e0',
+        display: 'flex',
+        flexDirection: 'column',
+        p: 3
+      }}>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#4CAF50' }} />
+            <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>All</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#2196F3' }} />
+            <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>Personal</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#FF5722' }} />
+            <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>Work</Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ mt: 'auto', pt: 3 }}>
+          <Box sx={{ 
+            bgcolor: '#f5f5f5', 
+            borderRadius: 2, 
+            p: 2,
+            textAlign: 'center'
+          }}>
+            <Box sx={{ 
+              width: 60, 
+              height: 60, 
+              borderRadius: '50%', 
+              bgcolor: '#FFF9C4',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mx: 'auto',
+              mb: 2
             }}>
-              Logout
+              <Typography sx={{ fontSize: '30px' }}>👤</Typography>
+            </Box>
+            <Typography sx={{ fontFamily: 'Poppins', fontSize: '12px', mb: 1 }}>
+              {walletConnected ? walletName : 'No Wallet'}
             </Typography>
-          </Link>
+            <Button
+            fullWidth
+            variant="contained"
+            size="small"
+            sx={{
+              backgroundColor: walletConnected ? '#d32f2f' : '#091057',
+              color: 'white',
+              fontFamily: 'Poppins',
+              textTransform: 'none',
+              fontSize: '11px',
+              py: 0.5,
+              '&:hover': {
+                backgroundColor: walletConnected ? '#b71c1c' : '#0a1a6b'
+              }
+            }}
+            onClick={walletConnected ? handleDisconnectWallet : handleSyncWallet}
+          >
+            {walletConnected ? 'Disconnect Wallet' : 'Sync Wallet'}
+          </Button>
+          </Box>
         </Box>
       </Box>
 
-      <Box flex="1" padding={4}>
-      {/* Wallet Status Alert */}
-      {walletError && (
-        <Alert severity="error" sx={{ marginBottom: 2 }} onClose={() => setWalletError('')}>
-          {walletError}
-        </Alert>
-      )}
-      {walletSuccess && (
-        <Alert severity="success" sx={{ marginBottom: 2 }} onClose={() => setWalletSuccess('')}>
-          {walletSuccess}
-        </Alert>
-      )}
-
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-  <Typography sx={{ fontFamily: "Poppins", fontSize: "24px", fontWeight: "bold", color: "primary" }}>
-    Notes
-  </Typography>
-  <Box sx={{ marginLeft: "auto", display: "flex", gap: 2 , marginBottom: 2}}>
-    <Button
-      variant="contained"
-      startIcon={walletConnected ? <CheckCircleIcon /> : <WalletIcon />}
-      sx={{
-        backgroundColor: walletConnected ? "#4CAF50" : "#2196F3",
-        color: "white",
-        fontFamily: "Poppins",
-        textTransform: "none",
-      }}
-      onClick={handleSyncWallet}
-      title={walletConnected ? `Connected to ${walletName}` : "Click to sync wallet"}
-    >
-      {walletConnected ? `Wallet: ${walletName}` : "Sync to Wallet"}
-    </Button>
-     {walletConnected && (
-    <Button
-      variant="contained"
-      color="error"
-      startIcon={<ArrowBackIcon />}
-      sx={{
-        backgroundColor: "#f44336",
-        color: "white",
-        fontFamily: "Poppins",
-        textTransform: "none",
-      }}
-      onClick={handleDisconnectWallet}
-      title="Disconnect Wallet"
-    >
-      Disconnect
-    </Button>
-  )}
-    <Button
-      variant="contained"
-      startIcon={<AddIcon />}
-      disabled={!walletConnected}
-      sx={{
-        backgroundColor: walletConnected ? "#EC8305" : "#bfbfbf",
-        color: "white",
-        fontFamily: "Poppins",
-        textTransform: "none",
-        cursor: walletConnected ? "pointer" : "not-allowed",
-      }}
-      title={!walletConnected ? "Please sync your wallet first" : "Add a new note"}
-      onClick={walletConnected ? handleAddTaskClick : null}
-    >
-      Add Note
-    </Button>
-  </Box>
-</Box>
-              
-        {/* Task Cards */}
-        <Box display="flex" gap={3} flexWrap="wrap" >
-        {/* Pagination logic */}
-        {note.slice((currentPage - 1) * notesPerPage, currentPage * notesPerPage).map((task) => (
-          <Link to={`/taskdetails`} state={{ noteId: task.noteId }} onClick={(event) => event.stopPropagation()} style={{textDecoration:'none'}} key={task.noteId}>
-            <Box width="300px" padding={2} bgcolor="#F1F0E8" borderRadius="8px" boxShadow={2} sx={{ cursor: "pointer" }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6" fontFamily="Poppins" fontWeight="bold" color="#091057">
-                  {task.title}
-                </Typography>
-              </Box>
-              <Typography color="#EC8305" fontFamily="Poppins" fontSize="14px" marginTop={1}>
-                {task.noteText}    
-              </Typography>
-            </Box>
-          </Link>
-        ))}
+      {/* Main Content */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <Box sx={{ 
+          bgcolor: 'white', 
+          borderBottom: '1px solid #e0e0e0',
+          px: 4,
+          py: 2,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Typography sx={{ fontWeight: 'bold', fontSize: '24px', fontFamily: 'Poppins' }}>
+            MY NOTES
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <TextField
+              placeholder="Search"
+              size="small"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: '#999' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                width: '300px',
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  bgcolor: '#f5f5f5',
+                  '& fieldset': { border: 'none' }
+                }
+              }}
+            />
+            
+          </Box>
         </Box>
-        {/* Pagination controls */}
-        <Box display="flex" justifyContent="center" mt={4}>
-          <Pagination
-            count={Math.ceil(note.length / notesPerPage)}
-            page={currentPage}
-            onChange={(_, value) => setCurrentPage(value)}
-            color="primary"
-          />
+
+        {/* Alerts */}
+        {walletError && (
+          <Alert severity="error" sx={{ mx: 4, mt: 2 }} onClose={() => setWalletError('')}>
+            {walletError}
+          </Alert>
+        )}
+        {walletSuccess && (
+          <Alert severity="success" sx={{ mx: 4, mt: 2 }} onClose={() => setWalletSuccess('')}>
+            {walletSuccess}
+          </Alert>
+        )}
+
+        {/* Content Area */}
+        <Box sx={{ flex: 1, p: 4, overflow: 'auto' }}>
+          {/* Recent Folders Section */}
+          <Box sx={{ mb: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              
+              <Box sx={{ display: 'flex', gap: 2 }}>
+              
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              
+            </Box>
+          </Box>
+
+          {/* My Notes Section */}
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography sx={{ fontWeight: 'bold', fontSize: '18px', fontFamily: 'Poppins', mr: 3 }}>
+                  My Notes
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Chip label="Todays" size="small" />
+                  <Chip label="This Week" size="small" variant="outlined" />
+                  <Chip label="This Month" size="small" variant="outlined" />
+                </Box>
+              </Box>
+             
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              {note.slice((currentPage - 1) * notesPerPage, currentPage * notesPerPage).map((task, index) => (
+                <Link 
+                  to={`/taskdetails`} 
+                  state={{ noteId: task.note_id }} 
+                  style={{textDecoration:'none'}} 
+                  key={task.note_id}
+                >
+                  <Card sx={{ 
+                    width: 280, 
+                    height: 180,
+                    bgcolor: noteColors[index % noteColors.length],
+                    borderRadius: 3,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'transform 0.2s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 3
+                    }
+                  }}>
+                    <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
+                        <Typography sx={{ fontSize: '11px', color: '#666', fontFamily: 'Poppins' }}>
+                          {new Date(task.createdAt).toLocaleDateString()}
+                        </Typography>
+                        <IconButton size="small">
+                          <MoreVertIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                      <Typography sx={{ fontWeight: 'bold', fontFamily: 'Poppins', fontSize: '16px', mb: 1 }}>
+                        {task.title}
+                      </Typography>
+                      <Typography sx={{ 
+                        fontSize: '13px', 
+                        color: '#555',
+                        fontFamily: 'Poppins',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        flex: 1
+                      }}>
+                        {task.note_text}
+                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+                        <Chip 
+                          icon={<CheckCircleIcon sx={{ fontSize: 14 }} />} 
+                          label="✓" 
+                          size="small"
+                          sx={{ 
+                            height: 20,
+                            bgcolor: 'rgba(0,0,0,0.1)',
+                            '& .MuiChip-label': { px: 0.5 }
+                          }}
+                        />
+                        <Typography sx={{ fontSize: '11px', color: '#666' }}>
+                          {new Date(task.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+              
+              {/* New Note Card */}
+              <Card 
+                onClick={walletConnected ? handleAddTaskClick : undefined}
+                sx={{ 
+                  width: 280, 
+                  height: 180,
+                  border: '2px dashed #ccc',
+                  bgcolor: 'transparent',
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  '&:hover': {
+                    bgcolor: '#f5f5f5'
+                  }
+                }}
+              >
+                <Box sx={{ textAlign: 'center' }}>
+                  <AddIcon sx={{ fontSize: 40, color: '#999', mb: 1 }} />
+                  <Typography sx={{ fontFamily: 'Poppins', color: '#999' }}>New Note</Typography>
+                </Box>
+              </Card>
+            </Box>
+
+            {/* Pagination */}
+            <Box display="flex" justifyContent="center" mt={4}>
+              <Pagination
+                count={Math.ceil(note.length / notesPerPage)}
+                page={currentPage}
+                onChange={(_, value) => setCurrentPage(value)}
+                color="primary"
+                sx={{
+                    '& .MuiPaginationItem-page': {
+                        color: 'white',   // only numbers, NOT arrows
+                      }
+                  }}
+              />
+            </Box>
+          </Box>
         </Box>
       </Box>
 
       {/* Add Task Dialog */}
-      <Dialog open={openAddDialog} onClose={handleCloseDialog}>
+      <Dialog open={openAddDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmit}>
-          <DialogTitle>Add New Note</DialogTitle>
+          <DialogTitle sx={{ fontFamily: 'Poppins', fontWeight: 'bold' }}>Add New Note</DialogTitle>
           <DialogContent>
             <TextField
               autoFocus
               margin="dense"
-              label="Task Title"
+              label="Note Title"
               fullWidth
               variant="outlined"
               value={newNote.title}
               onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
+              sx={{ mb: 2 }}
             />
             <TextField
               margin="dense"
-              label="Task Description"
+              label="Note Description"
               fullWidth
+              multiline
+              rows={4}
               variant="outlined"
               value={newNote.noteText}
               onChange={(e) => setNewNote({ ...newNote, noteText: e.target.value })}
             />
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button type='submit'>Add Task</Button>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={handleCloseDialog} sx={{ textTransform: 'none' }}>Cancel</Button>
+            <Button 
+              type='submit' 
+              variant="contained"
+              sx={{ 
+                bgcolor: '#091057',
+                color: 'white',
+                textTransform: 'none',
+                '&:hover': { bgcolor: '#0a1a6b' }
+              }}
+            >
+              Add Note
+            </Button>
           </DialogActions>
         </form>
       </Dialog>
@@ -526,8 +692,6 @@ const handleDisconnectWallet = () => {
               </Box>
             </Box>
           )}
-
-
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseTransactionDialog} sx={{ color: "#091057" }}>
@@ -535,36 +699,7 @@ const handleDisconnectWallet = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      <Box
-        bgcolor="#091057"
-        padding={3}
-        color="white"
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        marginTop="auto"
-      >
-        <Box display="flex" gap={3} marginBottom={2}>
-          <Typography component="button">
-            <i className="fab fa-facebook" style={{ color: "white", fontSize: "20px" }}></i>
-          </Typography>
-          <Typography component="button">
-            <i className="fab fa-instagram" style={{ color: "white", fontSize: "20px" }}></i>
-          </Typography>
-          <Typography component="button">
-            <i className="fab fa-twitter" style={{ color: "white", fontSize: "20px" }}></i>
-          </Typography>
-        </Box>
-        <Box display="flex" gap={3} fontFamily="Poppins" fontSize="14px">
-          <Typography>Home</Typography>
-          <Typography>About</Typography>
-          <Typography>Team</Typography>
-          <Typography>Services</Typography>
-          <Typography>Contact</Typography>
-        </Box>
-      </Box>
-    </div>
+    </Box>
   );
 }
 
