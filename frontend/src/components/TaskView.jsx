@@ -21,8 +21,7 @@ import { loadNotes, saveNotes, upsertNote } from '../store';
 
 function TaskView() {
   const noteColors = ['#FFF9C4', '#FFCCBC', '#B3E5FC', '#C5E1A5', '#F8BBD0'];
-  const userId = localStorage.getItem('loggedInUserId'); //
-  console.log('userId from localStorage:', userId);
+  const userId = localStorage.getItem('loggedInUserId');
   const [note, setNote] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const notesPerPage = 20;
