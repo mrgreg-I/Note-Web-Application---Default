@@ -7,16 +7,10 @@ import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import AddIcon from '@mui/icons-material/Add';
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import WalletIcon from '@mui/icons-material/Wallet';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert, Pagination, InputAdornment, Card, CardContent, Chip } from '@mui/material';
-import Logo from "../assets/Logo1.png";
 import SearchIcon from '@mui/icons-material/Search';
-import MenuIcon from '@mui/icons-material/Menu';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { pollTx, sendTransaction } from '../blockchain';
-import { loadNotes, saveNotes, upsertNote } from '../store';
 import HistoryIcon from '@mui/icons-material/History';
 
 function TaskView() {

@@ -163,7 +163,7 @@ public class BlockchainTransactionService {
                 "DELETE",
                 txHash,
                 walletAddress,
-                "completed"      // <-- important, not pending
+                "pending"      // <-- important, not pending
         );
         transactionHistoryRepository.save(transaction);
 
