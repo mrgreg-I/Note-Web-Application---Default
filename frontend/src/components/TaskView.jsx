@@ -1,23 +1,19 @@
 import * as React from 'react';
-import { useNavigate, Link, useParams } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
+import { Box, IconButton, Dialog, DialogActions, DialogContent, DialogTitle, TextField } from '@mui/material';
 import Logo from "../assets/Logo1.png";
 
 function TaskView() {
 
-  const userId = localStorage.getItem('loggedInUserId'); //
-  console.log('userId from localStorage:', userId);
+  const userId = localStorage.getItem('loggedInUserId');
 
   const [note, setNote] = useState([]);
-  const [filteredTasks, setFilteredTasks] = useState([]);
-  const [filterStatus, setFilterStatus] = useState('All');
-  const [sortOrder, setSortOrder] = useState('asc'); // Added state for sorting order
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [newNote, setNewNote] = useState({
     title: '',
@@ -26,46 +22,45 @@ function TaskView() {
     updatedAt: new Date().toISOString(),
     user: { userId: userId },
   });
+
   const navigate = useNavigate();
-  const token = localStorage.getItem('authToken');
+
+  // 🌙 DARK MODE STATE
+  const [darkMode, setDarkMode] = useState(false);
+
+  const toggleDarkMode = () => {
+    setDarkMode(!darkMode);
+  };
 
   useEffect(() => {
-  const fetchTasks = async () => {
-    if (!userId) {
-      console.error('UserId is missing');
-      return;
-    }
+    const fetchTasks = async () => {
+      if (!userId) return;
 
-    try {
-      const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
-      setNote(response.data || []);
-    } catch (error) {
-      console.error('Error fetching note:', error);
-    }
-  };
+      try {
+        const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
+        setNote(response.data || []);
+      } catch (error) {
+        console.error('Error fetching note:', error);
+      }
+    };
 
-  fetchTasks();
-}, [userId]);
+    fetchTasks();
+  }, [userId]);
 
-  const handleAddTaskClick = () => {
-    setOpenAddDialog(true);
-  };
+  const handleAddTaskClick = () => setOpenAddDialog(true);
+  const handleCloseDialog = () => setOpenAddDialog(false);
 
-  const handleCloseDialog = () => {
-    setOpenAddDialog(false);
-  };
-
-  const postNote = (note) => {
-    axios.post('/api/note/post', note)
+  const postNote = (noteData) => {
+    axios.post('/api/note/post', noteData)
       .then(response => {
-        const newNote = response.data;
-        setNote(prevTasks => [...prevTasks, newNote]);
+        const newNoteData = response.data;
+        setNote(prev => [...prev, newNoteData]);
         setNewNote({
           title: '',
           noteText: '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          user: { userId: userId }
+          user: { userId: userId },
         });
       })
       .catch(error => console.error("Error posting task:", error));
@@ -76,105 +71,156 @@ function TaskView() {
     postNote(newNote);
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name === "userId") {
-      setNewNote(prevTask => ({
-        ...prevTask,user: { userId: value }
-      }));
-    } else {
-      setNewNote(prevTask => ({
-        ...prevTask,
-        [name]: value,
-      }));
-    }
-  };
-
-  // Menu handling for filtering and sorting
-  const [anchorEl, setAnchorEl] = useState(null);
-  const handleMenuClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleSortOrderChange = (order) => {
-    setSortOrder(order);
-    handleMenuClose();  // Close the menu after sorting
-  };
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" bgcolor="#091057" padding={2} color="white">
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100vh',
+        backgroundColor: darkMode ? "#121212" : "white",
+        color: darkMode ? "white" : "black"
+      }}
+    >
+
+      {/* HEADER */}
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        bgcolor="#091057"
+        padding={2}
+        color="white"
+      >
         <Link to="/tasks">
-          <Button sx={{ width: 'auto', mr: 1 }}><img src={Logo} alt="Logo" style={{ maxWidth: "60px" }} /></Button>
+          <Button sx={{ width: 'auto', mr: 1 }}>
+            <img src={Logo} alt="Logo" style={{ maxWidth: "60px" }} />
+          </Button>
         </Link>
-        <Box display="flex" gap={3}>
-          <Link to="/tasks" style={{textDecoration:'none'}}>
-            <Typography sx={{ color: "white", fontFamily: "Poppins", fontSize: "16px", cursor: "pointer", textDecoration: "none", fontWeight: "bold" }}>
+
+        <Box display="flex" gap={3} alignItems="center">
+
+          {/* 🌙 DARK MODE BUTTON */}
+          <Button
+            onClick={toggleDarkMode}
+            sx={{
+              color: "white",
+              textTransform: "none",
+              fontFamily: "Poppins",
+              fontWeight: "bold",
+              fontSize: "16px"
+            }}
+          >
+            {darkMode ? "Light Mode" : "Dark Mode"}
+          </Button>
+
+          {/* HOME */}
+          <Link to="/tasks" style={{ textDecoration: 'none' }}>
+            <Typography sx={{
+              color: "white",
+              fontFamily: "Poppins",
+              fontSize: "16px",
+              cursor: "pointer",
+              fontWeight: "bold"
+            }}>
               Home
             </Typography>
           </Link>
-          <Link to="/login" style={{textDecoration:'none'}}>
-            <Typography sx={{ color: "white", fontFamily: "Poppins", fontSize: "16px", cursor: "pointer", textDecoration: "none", fontWeight: "bold" }} onClick={() => {
-              localStorage.removeItem('authToken');
-              localStorage.removeItem('loggedInUserId');
-              navigate('/login');
-            }}>
+
+          {/* LOGOUT */}
+          <Link to="/login" style={{ textDecoration: 'none' }}>
+            <Typography
+              sx={{
+                color: "white",
+                fontFamily: "Poppins",
+                fontSize: "16px",
+                cursor: "pointer",
+                fontWeight: "bold"
+              }}
+              onClick={() => {
+                localStorage.removeItem('loggedInUserId');
+                navigate('/login');
+              }}
+            >
               Logout
             </Typography>
           </Link>
+
         </Box>
       </Box>
 
+      {/* CONTENT */}
       <Box flex="1" padding={4}>
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-  <IconButton onClick={() => navigate("/todos")}>
-    <ArrowBackIcon sx={{ color: "#091057" }} />
-  </IconButton>
-  <Typography sx={{ fontFamily: "Poppins", fontSize: "24px", fontWeight: "bold", color: "primary" }}>
-    List
-  </Typography>
-  <Box sx={{ marginLeft: "auto" }}>
-    <Button
-      variant="contained"
-      startIcon={<AddIcon />}
-      sx={{
-        backgroundColor: "#EC8305",
-        color: "white",
-        fontFamily: "Poppins",
-        textTransform: "none",
-      }}
-      onClick={handleAddTaskClick}
-    >
-      Add Note
-    </Button>
-  </Box>
-</Box>
-              
-        {/* Task Cards */}
-        <Box display="flex" gap={3} flexWrap="wrap" >
-        {note.map((task) => (
-  <Link to={`/taskdetails`} state={{ noteId: task.noteId }} onClick={(event) => event.stopPropagation()} style={{textDecoration:'none'}} key={task.noteId}>
-    <Box width="300px" padding={2} bgcolor="#F1F0E8" borderRadius="8px" boxShadow={2} sx={{ cursor: "pointer" }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Typography variant="h6" fontFamily="Poppins" fontWeight="bold" color="#091057">
-          {task.title}
-        </Typography>
-      </Box>
-      <Typography color="#EC8305" fontFamily="Poppins" fontSize="14px" marginTop={1}>
-        {task.noteText}    
-      </Typography>
-    </Box>
-  </Link>
-))}
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <IconButton onClick={() => navigate("/todos")}>
+            <ArrowBackIcon sx={{ color: darkMode ? "white" : "#091057" }} />
+          </IconButton>
+
+          <Typography sx={{
+            fontFamily: "Poppins",
+            fontSize: "24px",
+            fontWeight: "bold",
+            color: darkMode ? "white" : "#091057"
+          }}>
+            List
+          </Typography>
+
+          <Box sx={{ marginLeft: "auto" }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              sx={{
+                backgroundColor: "#EC8305",
+                color: "white",
+                fontFamily: "Poppins",
+                textTransform: "none",
+              }}
+              onClick={handleAddTaskClick}
+            >
+              Add Note
+            </Button>
+          </Box>
+        </Box>
+
+        {/* TASK CARDS */}
+        <Box display="flex" gap={3} flexWrap="wrap" marginTop={3}>
+          {note.map((task) => (
+            <Link
+              to={`/taskdetails`}
+              state={{ noteId: task.noteId }}
+              key={task.noteId}
+              style={{ textDecoration: 'none' }}
+            >
+              <Box
+                width="300px"
+                padding={2}
+                bgcolor={darkMode ? "#1E1E1E" : "#F1F0E8"}
+                borderRadius="8px"
+                boxShadow={2}
+                sx={{ cursor: "pointer" }}
+              >
+                <Typography
+                  variant="h6"
+                  fontFamily="Poppins"
+                  fontWeight="bold"
+                  color={darkMode ? "#EC8305" : "#091057"}
+                >
+                  {task.title}
+                </Typography>
+                <Typography
+                  color={darkMode ? "#FFD37A" : "#EC8305"}
+                  fontFamily="Poppins"
+                  fontSize="14px"
+                  marginTop={1}
+                >
+                  {task.noteText}
+                </Typography>
+              </Box>
+            </Link>
+          ))}
         </Box>
       </Box>
 
-      {/* Add Task Dialog */}
+      {/* ADD TASK DIALOG */}
       <Dialog open={openAddDialog} onClose={handleCloseDialog}>
         <form onSubmit={handleSubmit}>
           <DialogTitle>Add New Note</DialogTitle>
@@ -199,11 +245,12 @@ function TaskView() {
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button type='submit'>Add Task</Button>
+            <Button type="submit">Add Task</Button>
           </DialogActions>
         </form>
       </Dialog>
 
+      {/* FOOTER */}
       <Box
         bgcolor="#091057"
         padding={3}
@@ -213,17 +260,6 @@ function TaskView() {
         alignItems="center"
         marginTop="auto"
       >
-        <Box display="flex" gap={3} marginBottom={2}>
-          <Typography component="button">
-            <i className="fab fa-facebook" style={{ color: "white", fontSize: "20px" }}></i>
-          </Typography>
-          <Typography component="button">
-            <i className="fab fa-instagram" style={{ color: "white", fontSize: "20px" }}></i>
-          </Typography>
-          <Typography component="button">
-            <i className="fab fa-twitter" style={{ color: "white", fontSize: "20px" }}></i>
-          </Typography>
-        </Box>
         <Box display="flex" gap={3} fontFamily="Poppins" fontSize="14px">
           <Typography>Home</Typography>
           <Typography>About</Typography>
@@ -232,6 +268,7 @@ function TaskView() {
           <Typography>Contact</Typography>
         </Box>
       </Box>
+
     </div>
   );
 }
