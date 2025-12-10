@@ -91,109 +91,150 @@ console.log('noteId from location.state:', noteId);
   fetchData();
   }, [noteId]);
 const formatLovelaceToAda = (lovelaceAmount) => {
-    // Ensure the input is treated as a BigInt
-    const lovelace = BigInt(lovelaceAmount);
+    // Handle non-numeric values
+    if (typeof lovelaceAmount === 'string' && isNaN(lovelaceAmount)) {
+        return lovelaceAmount; // Return as-is if it's "Simulated" or other string
+    }
     
-    // The divisor for 1 ADA
-    const LOVELACE_PER_ADA = 1_000_000n;
-    
-    // Calculate ADA value (integer part)
-    const ada = lovelace / LOVELACE_PER_ADA;
-    
-    // Calculate the remainder (decimal part, in Lovelace)
-    const remainder = lovelace % LOVELACE_PER_ADA;
-    
-    // Format the remainder to ensure it has 6 digits (for .000000)
-    let fractionalPart = remainder.toString().padStart(6, '0');
-    
-    // Truncate to two significant digits (e.g., "000000" -> "00", "500000" -> "50")
-    // Use Number() to parse and localeString for proper decimal/comma handling
-    const formattedAda = (Number(ada.toString() + "." + fractionalPart)
-        .toFixed(2)); // Display 2 decimal places
+    try {
+        // Ensure the input is treated as a BigInt
+        const lovelace = BigInt(lovelaceAmount);
+        
+        // The divisor for 1 ADA
+        const LOVELACE_PER_ADA = 1_000_000n;
+        
+        // Calculate ADA value (integer part)
+        const ada = lovelace / LOVELACE_PER_ADA;
+        
+        // Calculate the remainder (decimal part, in Lovelace)
+        const remainder = lovelace % LOVELACE_PER_ADA;
+        
+        // Format the remainder to ensure it has 6 digits (for .000000)
+        let fractionalPart = remainder.toString().padStart(6, '0');
+        
+        // Truncate to two significant digits (e.g., "000000" -> "00", "500000" -> "50")
+        // Use Number() to parse and localeString for proper decimal/comma handling
+        const formattedAda = (Number(ada.toString() + "." + fractionalPart)
+            .toFixed(2)); // Display 2 decimal places
 
-    return `${formattedAda} ADA`;
+        return `${formattedAda} ADA`;
+    } catch (error) {
+        console.error("Error formatting lovelace:", error);
+        return "N/A";
+    }
 };
 // start of update functions
-const handleSubmitTransaction = async () =>{
-    // Define the Lovelace amount here, or pass it as a parameter
-    const lovelaceAmount = 1_000_000n; 
-    
-    if(walletApi){
-      try{
-        const wallet = new WebWallet(walletApi)
-        const blaze= await Blaze.from(provider,wallet)
-        console.log("Blaze instance created!", blaze);
-        const bench32Address = Core.Address.fromBytes(Buffer.from(walletAddress, 'hex')).toBech32;
-        console.log("Recipient Address (bech32): ",bench32Address);
-        const tx = await blaze
-        .newTransaction()
-        .payLovelace(
-            Core.Address.fromBech32(
-                "addr_test1qq3ets7dxg8aure96num4zz7asrmy9nr8kgsy6t3jfdhv9yrv4w2has733mkknfv0q9ugh3vum305c5ywd65gmg5sn0qncs98a",
-            ),
-            lovelaceAmount, // Use defined variable
-        )
-        .complete();
-        console.log("Transaction: ",tx.toCbor());
-        const signexTx = await blaze.signTransaction(tx);
 
-        // Step #7
-        // Submit the transaction to the blockchain network
-        const txId = await blaze.provider.postTransactionToChain(signexTx);
-
-        // Optional: Print the transaction ID
-        console.log("Transaction ID", txId);
-        
-        // SUCCESS PATH: Return the transaction object
-        return { 
-            transactionId: txId, 
-            amount: lovelaceAmount, 
-        };
-      }
-      catch(error){
-        console.error("Error submitting transaction:",error);
-        // ERROR PATH: Return a clear value (like null) instead of nothing
-        return null; 
-      }
-    }
-    // WALLET NOT CONNECTED PATH: Return a clear value instead of nothing
-    return null; 
+// Generate a simulated transaction hash (UUID format without dashes)
+const generateSimulatedTxHash = () => {
+    return 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'.replace(/x/g, () => {
+        return Math.floor(Math.random() * 16).toString(16);
+    });
 }
+const handleSubmitTransaction = async () => {
+  const lovelaceAmount = 1_000_000n; 
+
+  if (walletApi) {
+    try {
+      const wallet = new WebWallet(walletApi);
+      const blaze = await Blaze.from(provider, wallet);
+
+      const bech32Address = Core.Address.fromBytes(
+        Buffer.from(walletAddress, 'hex')
+      ).toBech32();
+
+      const tx = await blaze
+        .newTransaction()
+        .payLovelace(Core.Address.fromBech32(bech32Address), lovelaceAmount)
+        .complete();
+
+      const signedTx = await blaze.signTransaction(tx);
+      const txId = await blaze.provider.postTransactionToChain(signedTx);
+
+      return {
+        transactionId: txId,
+        amount: lovelaceAmount,
+        isSimulated: false,
+      };
+    } catch (error) {
+      console.error("Error submitting self-transaction:", error);
+      throw error; 
+    }
+  }
+
+  // Wallet not connected
+  throw new Error("Wallet not connected");
+};
+
+   
 
 const updateTask = async (note) => {
   try {
-    const response = await axios.put(`/api/note/put/${note.noteId}`, note);
+    let txResult;
+    let txhash;
+    
+    // Step 1: Try to submit a real transaction (self-transaction)
+    try {
+      txResult = await handleSubmitTransaction();
+      txhash = txResult.transactionId;
+      console.log(`Real transaction successful: ${txhash}`);
+    } catch (txError) {
+      // If real transaction fails, use simulated txhash
+      console.log(`Real transaction failed, using simulated txhash:`, txError.message);
+      txResult = {
+        transactionId: generateSimulatedTxHash(),
+        amount: 1_000_000n,
+        isSimulated: true
+      };
+      txhash = txResult.transactionId;
+    }
+    
+    const walletAddr = localStorage.getItem('walletAddress');
+    
+    console.log(`Updating note with txhash: ${txhash} (isSimulated: ${txResult.isSimulated})`);
+    
+    // Step 2: Call backend with txhash parameter
+    const response = await axios.put(
+      `/api/note/put/${note.noteId}?walletAddress=${walletAddr}&txhash=${txhash}`, 
+      note
+    );
 
     console.log("Note updated successfully:", response.data);
-    const txResult = await handleSubmitTransaction();
-        setTransactionInfo({
-          type: 'UPDATE',
-          noteTitle: note.title,
-          noteText: note.noteText,
-          transactionId: txResult.transactionId,
-          network: provider.network,
-          fee: txResult.amount,
-          wallet: localStorage.getItem('connectedWallet')
-        });
-        setShowTransactionDialog(true);
+    
+    // Step 3: Set transaction info with the txhash
+    setTransactionInfo({
+      type: 'UPDATE',
+      noteTitle: note.title,
+      noteText: note.noteText,
+      transactionId: txhash,
+      network: provider.network,
+      fee: txResult.isSimulated ? 'Simulated' : '1.0 ADA',
+      wallet: localStorage.getItem('connectedWallet'),
+      isSimulated: txResult.isSimulated
+    });
+    setShowTransactionDialog(true);
+    
     // Update the task in currentData to trigger re-render
     setCurrentData(prevState => ({
       ...prevState,
-      title: response.data.title,
-      noteText: response.data.noteText,
+      title: response.data.note.title,
+      noteText: response.data.note.noteText,
       updatedAt: new Date().toISOString(),
+      txhash: txhash,
     }));
 
     // Also update updateData if needed
     setUpdateData(prevData => ({
       ...prevData,
-      title: response.data.title,
-      noteText: response.data.noteText,
+      title: response.data.note.title,
+      noteText: response.data.note.noteText,
       updatedAt: new Date().toISOString(),
+      txhash: txhash,
     }));
     
   } catch (error) {
     console.error("Error updating note:", error);
+    setTransactionError("Error updating note: " + error.message);
   }
 };
 
@@ -257,37 +298,60 @@ const handleUpdateChange = (e) => {
     setTransactionError('');
   };
 
- const confirmDeleteTask = () => {
+ const confirmDeleteTask = async () => {
   if (selectedNote && selectedNote.noteId) {
-    axios.delete(`/api/note/delete/${selectedNote.noteId}`)
-      .then(async () => {
-        // Log deletion to blockchain if wallet is connected
-        const txInfo = await logTransactionToBlockchain(selectedNote.noteId, selectedNote.title, 'DELETE');
-        
-        if (txInfo) {
-          setTransactionInfo({
-            type: 'DELETE',
-            noteTitle: selectedNote.title,
-            transactionId: txInfo.transactionId,
-            network: txInfo.network,
-            fee: txInfo.fee,
-            wallet: localStorage.getItem('connectedWallet')
-          });
-          setShowTransactionDialog(true);
-          setTimeout(() => {
-            navigate(`/tasks`);
-            setConfirm(false);
-          }, 2000);
-        } else {
-          navigate(`/tasks`);
-          setConfirm(false);
-        }
-      })
-      .catch(error => {
-        console.error('Error deleting task:', error);
-        setTransactionError("Error deleting task: " + error.message);
-        setConfirm(false);
+    try {
+      let txResult;
+      let txhash;
+      
+      // Step 1: Try to submit a real transaction (self-transaction)
+      try {
+        txResult = await handleSubmitTransaction();
+        txhash = txResult.transactionId;
+        console.log(`Real transaction successful: ${txhash}`);
+      } catch (txError) {
+        // If real transaction fails, use simulated txhash
+        console.log(`Real transaction failed, using simulated txhash:`, txError.message);
+        txResult = {
+          transactionId: generateSimulatedTxHash(),
+          amount: 1_000_000n,
+          isSimulated: true
+        };
+        txhash = txResult.transactionId;
+      }
+      
+      const walletAddr = localStorage.getItem('walletAddress');
+      
+      console.log(`Deleting note with txhash: ${txhash} (isSimulated: ${txResult.isSimulated})`);
+      
+      // Step 2: Call backend with txhash parameter
+      const response = await axios.delete(
+        `/api/note/delete/${selectedNote.noteId}?walletAddress=${walletAddr}&txhash=${txhash}`
+      );
+      
+      console.log("Note deleted successfully:", response.data);
+      
+      // Step 3: Show transaction confirmation
+      setTransactionInfo({
+        type: 'DELETE',
+        noteTitle: selectedNote.title,
+        transactionId: txhash,
+        network: provider.network,
+        fee: txResult.isSimulated ? 'Simulated' : '1.0 ADA',
+        wallet: localStorage.getItem('connectedWallet'),
+        isSimulated: txResult.isSimulated
       });
+      setShowTransactionDialog(true);
+      
+      setTimeout(() => {
+        navigate(`/tasks`);
+        setConfirm(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      setTransactionError("Error deleting task: " + error.message);
+      setConfirm(false);
+    }
   }
 };
 
@@ -522,15 +586,16 @@ const handleUpdateChange = (e) => {
           </Button>
         </DialogActions>
       </Dialog>
-          
-          <Box
+      
+      {/* Footer */}
+      <Box
         bgcolor="#091057"
         padding={3}
         color="white"
         display="flex"
         flexDirection="column"
         alignItems="center"
-        marginTop="auto" // Pushes the footer to the bottom
+        marginTop="auto"
       >
         <Box display="flex" gap={3} marginBottom={2}>
           <Typography component="button">

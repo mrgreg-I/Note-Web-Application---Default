@@ -4,7 +4,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.example.csit360.entity.Note;
+import com.example.csit360.entity.TransactionHistory;
 import com.example.csit360.repository.NoteRepository;
+import com.example.csit360.repository.TransactionHistoryRepository;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,6 +25,9 @@ public class BlockchainTransactionService {
 
     @Autowired
     private BlockchainService blockchainService;
+
+    @Autowired
+    private TransactionHistoryRepository transactionHistoryRepository;
 
     /**
      * Store a note with pending status and simulate blockchain transaction
@@ -48,14 +53,24 @@ public class BlockchainTransactionService {
             // Step 3: Save the note to database immediately (fast cache for UX)
             Note savedNote = noteRepository.save(note);
             
-            // Step 4: Simulate blockchain transaction (in background, this would be async)
+            // Step 4: Log transaction to TransactionHistory (immutable audit trail)
+            TransactionHistory transaction = new TransactionHistory(
+                savedNote.getNoteId(),
+                action,
+                txHash,
+                walletAddress,
+                "pending"
+            );
+            transactionHistoryRepository.save(transaction);
+            
+            // Step 5: Simulate blockchain transaction (in background, this would be async)
             Map<String, Object> simulatedTx = blockchainService.simulateNoteTransaction(
                 savedNote.getNoteId(),
                 walletAddress,
                 savedNote.getTitle()
             );
             
-            // Step 5: Return response with both note and transaction info
+            // Step 6: Return response with both note and transaction info
             Map<String, Object> response = new HashMap<>();
             response.put("note", savedNote);
             response.put("transaction", simulatedTx);
@@ -88,6 +103,16 @@ public class BlockchainTransactionService {
             
             // Save updated note to database
             Note savedNote = noteRepository.save(note);
+            
+            // Log transaction to TransactionHistory (immutable audit trail)
+            TransactionHistory transaction = new TransactionHistory(
+                savedNote.getNoteId(),
+                "UPDATE",
+                txHash,
+                walletAddress,
+                "pending"
+            );
+            transactionHistoryRepository.save(transaction);
             
             // Simulate blockchain transaction
             Map<String, Object> simulatedTx = blockchainService.simulateNoteUpdateTransaction(
@@ -133,6 +158,17 @@ public class BlockchainTransactionService {
             
             // Save the note with pending deletion status
             Note savedNote = noteRepository.save(note);
+            
+            // Log transaction to TransactionHistory (immutable audit trail)
+            // IMPORTANT: Log BEFORE deletion so we have the transaction record
+            TransactionHistory transaction = new TransactionHistory(
+                noteId,
+                "DELETE",
+                txHash,
+                walletAddress,
+                "pending"
+            );
+            transactionHistoryRepository.save(transaction);
             
             // Simulate blockchain transaction
             Map<String, Object> simulatedTx = blockchainService.simulateNoteDeletionTransaction(

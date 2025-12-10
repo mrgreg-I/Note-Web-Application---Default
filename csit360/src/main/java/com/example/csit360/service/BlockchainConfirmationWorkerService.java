@@ -1,13 +1,16 @@
 package com.example.csit360.service;
 
 import com.example.csit360.entity.Note;
+import com.example.csit360.entity.TransactionHistory;
 import com.example.csit360.repository.NoteRepository;
+import com.example.csit360.repository.TransactionHistoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 /**
@@ -29,6 +32,9 @@ public class BlockchainConfirmationWorkerService {
 
     @Autowired
     private BlockchainTransactionService blockchainTransactionService;
+
+    @Autowired
+    private TransactionHistoryRepository transactionHistoryRepository;
 
     /**
      * Scheduled task that runs every 20 seconds to check blockchain confirmation status
@@ -88,7 +94,10 @@ public class BlockchainConfirmationWorkerService {
                 // Update note status from "pending" to "confirmed"
                 blockchainTransactionService.updateNoteStatus(note.getNoteId(), "confirmed");
                 
-                logger.info("✓ Note " + noteId + " status updated to 'confirmed'");
+                // Also update TransactionHistory status to "confirmed"
+                updateTransactionHistoryStatus(txHash, "confirmed");
+                
+                logger.info("✓ Note " + noteId + " and transaction history updated to 'confirmed'");
             } else {
                 logger.info("⏳ Transaction still pending for note " + noteId + ", will check again in 20 seconds");
             }
@@ -98,4 +107,28 @@ public class BlockchainConfirmationWorkerService {
             e.printStackTrace();
         }
     }
-}
+
+    /**
+     * Update the transaction history status to confirmed
+     * 
+     * @param txHash The transaction hash to update
+     * @param newStatus The new status (e.g., "confirmed")
+     */
+    private void updateTransactionHistoryStatus(String txHash, String newStatus) {
+        try {
+            // Find the transaction by hash
+            Optional<TransactionHistory> transaction = transactionHistoryRepository.findByTxHash(txHash);
+            
+            if (transaction.isPresent()) {
+                TransactionHistory tx = transaction.get();
+                tx.setStatus(newStatus);
+                transactionHistoryRepository.save(tx);
+                logger.info("📝 Transaction history for " + txHash + " updated to status: " + newStatus);
+            } else {
+                logger.warning("⚠️ No transaction history found for hash: " + txHash);
+            }
+        } catch (Exception e) {
+            logger.severe("❌ Error updating transaction history: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }

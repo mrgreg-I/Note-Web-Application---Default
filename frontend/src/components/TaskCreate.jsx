@@ -45,6 +45,17 @@ function TaskCreate() {
   const [walletAddress, setWalletAddress] = useState("");
   const [walletApi, setWalletApi] = useState(null);
   const [blockchainLogStatus, setBlockchainLogStatus] = useState(null);
+  const [provider] = useState(() => new (window.Blockfrost || {})({
+    network: 'cardano-preview',
+    projectId: import.meta.env.VITE_BLOCKFROST_PROJECT_ID,
+  }));
+
+  // Generate simulated transaction hash
+  const generateSimulatedTxHash = () => {
+    return 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'.replace(/x/g, () => {
+      return Math.floor(Math.random() * 16).toString(16);
+    });
+  };
 
   // Function to log transaction to blockchain
   const logTransactionToBlockchain = (note) => {
@@ -74,11 +85,16 @@ function TaskCreate() {
 
   // Function to post the task
   const postTask = (note) => {
-    axios.post('/api/note/post', note)
+    // Generate txhash for the note creation
+    const txhash = generateSimulatedTxHash();
+    const walletAddr = localStorage.getItem('walletAddress') || walletAddress;
+    
+    console.log(`Creating note with txhash: ${txhash}, wallet: ${walletAddr}`);
+    
+    axios.post(`/api/note/post?walletAddress=${walletAddr}&txhash=${txhash}`, note)
       .then(response => {
         setSubmittedNote(response.data);  // Update the submittedTask state
-        // Log to blockchain after note is created
-        logTransactionToBlockchain(response.data);
+        setBlockchainLogStatus(`Note created successfully with txhash: ${txhash}`);
         // Reset the form after submission
         setNewNote({
           title: '',
@@ -87,14 +103,19 @@ function TaskCreate() {
           updatedAt: new Date().toISOString(),
           user: { userId: userId },
         });
+        setWalletAddress('');
         console.log({
-          noteId: note.noteId,
-          walletAddress: walletAddress,
+          noteId: response.data.note.noteId,
+          walletAddress: walletAddr,
+          txhash: txhash,
           noteTitle: note.title
         });
       })
       
-      .catch(error => console.error("Error posting task:", error));
+      .catch(error => {
+        console.error("Error posting task:", error);
+        setBlockchainLogStatus("Error creating note: " + error.message);
+      });
   };
 
   // Handle form submission
