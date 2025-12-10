@@ -10,12 +10,16 @@ import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import WalletIcon from '@mui/icons-material/Wallet';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert, Pagination } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import MenuIcon from '@mui/icons-material/Menu';
+import FolderIcon from '@mui/icons-material/Folder';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert, Pagination, InputAdornment, Card, CardContent, Chip } from '@mui/material';
 import Logo from "../assets/Logo1.png";
 
 function TaskView() {
 
-  const userId = localStorage.getItem('loggedInUserId'); //
+  const userId = localStorage.getItem('loggedInUserId');
   console.log('userId from localStorage:', userId);
 
   const [note, setNote] = useState([]);
@@ -31,6 +35,7 @@ function TaskView() {
   const [walletError, setWalletError] = useState('');
   const [walletSuccess, setWalletSuccess] = useState('');
   const [walletApi, setWalletApi] = useState();
+  const [searchQuery, setSearchQuery] = useState('');
   const [newNote, setNewNote] = useState({
     title: '',
     noteText: '',
@@ -47,6 +52,7 @@ function TaskView() {
     network: 'cardano-preview',
     projectId: import.meta.env.VITE_BLOCKFROST_PROJECT_ID,
   }))
+
   // Check for previously connected wallet on component mount
   useEffect(() => {
     const storedWalletName = localStorage.getItem('connectedWallet');
@@ -64,19 +70,16 @@ function TaskView() {
     return addr.to_bech32();
   };
 
-  // Function to sync/connect wallet using CIP-0030 standard
   const handleSyncWallet = async () => {
     try {
       setWalletError('');
       setWalletSuccess('');
 
-      // Check if Cardano object exists
       if (!window.cardano) {
         setWalletError('Cardano object not found. Please ensure a Cardano wallet extension is installed.');
         return;
       }
 
-      // Try to connect to Lace wallet first, then fallback to other wallets
       const walletOptions = ['lace', 'eternl', 'flint', 'nami'];
       let connected = false;
       let connectedWalletName = '';
@@ -84,18 +87,15 @@ function TaskView() {
       for (const wallet of walletOptions) {
         if (window.cardano[wallet]) {
           try {
-            // This is the CIP-0030 enable() method that asks for permission
             const api = await window.cardano[wallet].enable();
             setWalletApi(api);
             console.log("WalletAPI: ",api);
             if (api) {
-              // Get the wallet's unused addresses
               const walletAddress = await api.getChangeAddress();
               console.log("Wallet Address: ",walletAddress);
               setWalletAddress(walletAddress);
             }
           } catch (error) {
-            // User rejected permission or other error, try next wallet
             console.log(`Could not connect to ${wallet}:`, error.message);
             continue;
           }
@@ -113,23 +113,18 @@ function TaskView() {
 
   useEffect(() => {
   const fetchTasks = async () => {
-    if (!userId) {
-      console.error('UserId is missing');
-      return;
-    }
-
+    if (!userId) return;
     try {
       const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
-      // Sort notes so newest is first
       const sortedNotes = (response.data || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setNote(sortedNotes);
     } catch (error) {
       console.error('Error fetching note:', error);
     }
   };
-
   fetchTasks();
-}, [userId]);
+
+}, []);
 
   const handleAddTaskClick = () => {
     setOpenAddDialog(true);
@@ -139,116 +134,59 @@ function TaskView() {
     setOpenAddDialog(false);
   };
 
-
   const handleCloseTransactionDialog = () => {
     setShowTransactionDialog(false);
     setTransactionInfo(null);
     setTransactionError('');
   };
-  const formatLovelaceToAda = (lovelaceAmount) => {
-    // Ensure the input is treated as a BigInt
-    const lovelace = BigInt(lovelaceAmount);
-    
-    // The divisor for 1 ADA
-    const LOVELACE_PER_ADA = 1_000_000n;
-    
-    // Calculate ADA value (integer part)
-    const ada = lovelace / LOVELACE_PER_ADA;
-    
-    // Calculate the remainder (decimal part, in Lovelace)
-    const remainder = lovelace % LOVELACE_PER_ADA;
-    
-    // Format the remainder to ensure it has 6 digits (for .000000)
-    let fractionalPart = remainder.toString().padStart(6, '0');
-    
-    // Truncate to two significant digits (e.g., "000000" -> "00", "500000" -> "50")
-    // Use Number() to parse and localeString for proper decimal/comma handling
-    const formattedAda = (Number(ada.toString() + "." + fractionalPart)
-        .toFixed(2)); // Display 2 decimal places
 
+  const formatLovelaceToAda = (lovelaceAmount) => {
+    const lovelace = BigInt(lovelaceAmount);
+    const LOVELACE_PER_ADA = 1_000_000n;
+    const ada = lovelace / LOVELACE_PER_ADA;
+    const remainder = lovelace % LOVELACE_PER_ADA;
+    let fractionalPart = remainder.toString().padStart(6, '0');
+    const formattedAda = (Number(ada.toString() + "." + fractionalPart).toFixed(2));
     return `${formattedAda} ADA`;
-};
-  const postNote = async (note) => {
-    try {
-      const response = await axios.post('/api/note/post', note);
-      const newNote = response.data;
-        const txResult = await handleSubmitTransaction();
-        setTransactionInfo({
-          type: 'CREATE',
-          noteTitle: newNote.title,
-          transactionId: txResult.transactionId,
-          network: provider.network,
-          fee: txResult.amount,
-          wallet: localStorage.getItem('connectedWallet')
-        });
-        setShowTransactionDialog(true);
-      
-      setNote(prevTasks => [newNote, ...prevTasks]); // Newest first
-      setNewNote({
-        title: '',
-        noteText: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        user: { userId: userId }
-      });
-      const res = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
-      setNote(res.data || []);
-    } catch (error) {
-      console.error("Error posting task:", error);
-      
-    }
   };
+
+  const postNote = async (note) => {
+  try {
+    
+    // --- REAL BACKEND CALLS ---
+    const response = await axios.post('/api/note/post', note);
+    const newNote = response.data.note;
+    const txResult = await handleSubmitTransaction();
+    setTransactionInfo({
+      type: 'CREATE',
+      noteTitle: newNote.title,
+      transactionId: txResult.transactionId,
+      network: provider.network,
+      fee: txResult.amount,
+      wallet: localStorage.getItem('connectedWallet')
+    });
+    setShowTransactionDialog(true);
+
+    setNote(prevTasks => [newNote, ...prevTasks]);
+    setNewNote({
+      title: '',
+      noteText: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      user: { userId: userId }
+    });
+    const res = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
+    setNote(res.data || []);
+    
+  } catch (error) {
+    console.error("Error posting task:", error);
+  }
+};
 
   const handleSubmit = (e) => {
     e.preventDefault();
     postNote(newNote);
   };
-
-  const handleSubmitTransaction = async () =>{
-    // Define the Lovelace amount here, or pass it as a parameter
-    const lovelaceAmount = 1_000_000n; 
-    
-    if(walletApi){
-      try{
-        const wallet = new WebWallet(walletApi)
-        const blaze= await Blaze.from(provider,wallet)
-        console.log("Blaze instance created!", blaze);
-        const bench32Address = Core.Address.fromBytes(Buffer.from(walletAddress, 'hex')).toBech32;
-        console.log("Recipient Address (bech32): ",bench32Address);
-        const tx = await blaze
-        .newTransaction()
-        .payLovelace(
-            Core.Address.fromBech32(
-                "addr_test1qq3ets7dxg8aure96num4zz7asrmy9nr8kgsy6t3jfdhv9yrv4w2has733mkknfv0q9ugh3vum305c5ywd65gmg5sn0qncs98a",
-            ),
-            lovelaceAmount, // Use defined variable
-        )
-        .complete();
-        console.log("Transaction: ",tx.toCbor());
-        const signexTx = await blaze.signTransaction(tx);
-
-        // Step #7
-        // Submit the transaction to the blockchain network
-        const txId = await blaze.provider.postTransactionToChain(signexTx);
-
-        // Optional: Print the transaction ID
-        console.log("Transaction ID", txId);
-        
-        // SUCCESS PATH: Return the transaction object
-        return { 
-            transactionId: txId, 
-            amount: lovelaceAmount, 
-        };
-      }
-      catch(error){
-        console.error("Error submitting transaction:",error);
-        // ERROR PATH: Return a clear value (like null) instead of nothing
-        return null; 
-      }
-    }
-    // WALLET NOT CONNECTED PATH: Return a clear value instead of nothing
-    return null; 
-}
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -264,7 +202,6 @@ function TaskView() {
     }
   };
 
-  // Menu handling for filtering and sorting
   const [anchorEl, setAnchorEl] = useState(null);
   const handleMenuClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -276,137 +213,334 @@ function TaskView() {
 
   const handleSortOrderChange = (order) => {
     setSortOrder(order);
-    handleMenuClose();  // Close the menu after sorting
+    handleMenuClose();
   };
 
+  const noteColors = ['#FFF9C4', '#FFCCBC', '#B3E5FC', '#C5E1A5', '#F8BBD0'];
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" bgcolor="#091057" padding={2} color="white">
-        <Link to="/tasks">
-          <Button sx={{ width: 'auto', mr: 1 }}><img src={Logo} alt="Logo" style={{ maxWidth: "60px" }} /></Button>
-        </Link>
-        <Box display="flex" gap={3}>
-          <Link to="/tasks" style={{textDecoration:'none'}}>
-            <Typography sx={{ color: "white", fontFamily: "Poppins", fontSize: "16px", cursor: "pointer", textDecoration: "none", fontWeight: "bold" }}>
-              Home
-            </Typography>
-          </Link>
-          <Link to="/login" style={{textDecoration:'none'}}>
-            <Typography sx={{ color: "white", fontFamily: "Poppins", fontSize: "16px", cursor: "pointer", textDecoration: "none", fontWeight: "bold" }} onClick={() => {
-              localStorage.removeItem('authToken');
-              localStorage.removeItem('loggedInUserId');
-              navigate('/login');
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f5f5f5' }}>
+      {/* Sidebar */}
+      <Box sx={{ 
+        width: '250px', 
+        bgcolor: 'white', 
+        borderRight: '1px solid #e0e0e0',
+        display: 'flex',
+        flexDirection: 'column',
+        p: 3
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
+          <img src={Logo} alt="Logo" style={{ height: '30px', marginRight: '12px' }} />
+          <Typography sx={{ fontWeight: 'bold', fontSize: '20px', fontFamily: 'Poppins' }}>
+            Default
+          </Typography>
+        </Box>
+
+        <Button
+          fullWidth
+          variant="contained"
+          startIcon={<AddIcon />}
+          sx={{
+            backgroundColor: '#091057',
+            color: 'white',
+            fontFamily: 'Poppins',
+            textTransform: 'none',
+            mb: 3,
+            py: 1.5,
+            '&:hover': {
+              backgroundColor: '#0a1a6b'
+            }
+          }}
+          onClick={handleAddTaskClick}
+        >
+          Add new
+        </Button>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#4CAF50' }} />
+            <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>All</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#2196F3' }} />
+            <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>Personal</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1, cursor: 'pointer', '&:hover': { bgcolor: '#f5f5f5' }, borderRadius: 1 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#FF5722' }} />
+            <Typography sx={{ fontFamily: 'Poppins', fontSize: '14px' }}>Work</Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ mt: 'auto', pt: 3 }}>
+          <Box sx={{ 
+            bgcolor: '#f5f5f5', 
+            borderRadius: 2, 
+            p: 2,
+            textAlign: 'center'
+          }}>
+            <Box sx={{ 
+              width: 60, 
+              height: 60, 
+              borderRadius: '50%', 
+              bgcolor: '#FFF9C4',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mx: 'auto',
+              mb: 2
             }}>
-              Logout
+              <Typography sx={{ fontSize: '30px' }}>👤</Typography>
+            </Box>
+            <Typography sx={{ fontFamily: 'Poppins', fontSize: '12px', mb: 1 }}>
+              {walletConnected ? walletName : 'No Wallet'}
             </Typography>
-          </Link>
+            <Button
+              fullWidth
+              variant="contained"
+              size="small"
+              sx={{
+                backgroundColor: '#091057',
+                color: 'white',
+                fontFamily: 'Poppins',
+                textTransform: 'none',
+                fontSize: '11px',
+                py: 0.5
+              }}
+              onClick={handleSyncWallet}
+            >
+              {walletConnected ? 'Connected' : 'Sync Wallet'}
+            </Button>
+          </Box>
         </Box>
       </Box>
 
-      <Box flex="1" padding={4}>
-      {/* Wallet Status Alert */}
-      {walletError && (
-        <Alert severity="error" sx={{ marginBottom: 2 }} onClose={() => setWalletError('')}>
-          {walletError}
-        </Alert>
-      )}
-      {walletSuccess && (
-        <Alert severity="success" sx={{ marginBottom: 2 }} onClose={() => setWalletSuccess('')}>
-          {walletSuccess}
-        </Alert>
-      )}
-
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-  <Typography sx={{ fontFamily: "Poppins", fontSize: "24px", fontWeight: "bold", color: "primary" }}>
-    Notes
-  </Typography>
-  <Box sx={{ marginLeft: "auto", display: "flex", gap: 2 , marginBottom: 2}}>
-    <Button
-      variant="contained"
-      startIcon={walletConnected ? <CheckCircleIcon /> : <WalletIcon />}
-      sx={{
-        backgroundColor: walletConnected ? "#4CAF50" : "#2196F3",
-        color: "white",
-        fontFamily: "Poppins",
-        textTransform: "none",
-      }}
-      onClick={handleSyncWallet}
-      title={walletConnected ? `Connected to ${walletName}` : "Click to sync wallet"}
-    >
-      {walletConnected ? `Wallet: ${walletName}` : "Sync to Wallet"}
-    </Button>
-    <Button
-      variant="contained"
-      startIcon={<AddIcon />}
-      sx={{
-        backgroundColor: "#EC8305",
-        color: "white",
-        fontFamily: "Poppins",
-        textTransform: "none",
-      }}
-      onClick={handleAddTaskClick}
-    >
-      Add Note
-    </Button>
-  </Box>
-</Box>
-              
-        {/* Task Cards */}
-        <Box display="flex" gap={3} flexWrap="wrap" >
-        {/* Pagination logic */}
-        {note.slice((currentPage - 1) * notesPerPage, currentPage * notesPerPage).map((task) => (
-          <Link to={`/taskdetails`} state={{ noteId: task.noteId }} onClick={(event) => event.stopPropagation()} style={{textDecoration:'none'}} key={task.noteId}>
-            <Box width="300px" padding={2} bgcolor="#F1F0E8" borderRadius="8px" boxShadow={2} sx={{ cursor: "pointer" }}>
-              <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6" fontFamily="Poppins" fontWeight="bold" color="#091057">
-                  {task.title}
-                </Typography>
-              </Box>
-              <Typography color="#EC8305" fontFamily="Poppins" fontSize="14px" marginTop={1}>
-                {task.noteText}    
-              </Typography>
-            </Box>
-          </Link>
-        ))}
+      {/* Main Content */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <Box sx={{ 
+          bgcolor: 'white', 
+          borderBottom: '1px solid #e0e0e0',
+          px: 4,
+          py: 2,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <Typography sx={{ fontWeight: 'bold', fontSize: '24px', fontFamily: 'Poppins' }}>
+            MY NOTES
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+            <TextField
+              placeholder="Search"
+              size="small"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ color: '#999' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                width: '300px',
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  bgcolor: '#f5f5f5',
+                  '& fieldset': { border: 'none' }
+                }
+              }}
+            />
+            
+          </Box>
         </Box>
-        {/* Pagination controls */}
-        <Box display="flex" justifyContent="center" mt={4}>
-          <Pagination
-            count={Math.ceil(note.length / notesPerPage)}
-            page={currentPage}
-            onChange={(_, value) => setCurrentPage(value)}
-            color="primary"
-          />
+
+        {/* Alerts */}
+        {walletError && (
+          <Alert severity="error" sx={{ mx: 4, mt: 2 }} onClose={() => setWalletError('')}>
+            {walletError}
+          </Alert>
+        )}
+        {walletSuccess && (
+          <Alert severity="success" sx={{ mx: 4, mt: 2 }} onClose={() => setWalletSuccess('')}>
+            {walletSuccess}
+          </Alert>
+        )}
+
+        {/* Content Area */}
+        <Box sx={{ flex: 1, p: 4, overflow: 'auto' }}>
+          {/* Recent Folders Section */}
+          <Box sx={{ mb: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              
+              <Box sx={{ display: 'flex', gap: 2 }}>
+              
+              </Box>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              
+            </Box>
+          </Box>
+
+          {/* My Notes Section */}
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Typography sx={{ fontWeight: 'bold', fontSize: '18px', fontFamily: 'Poppins', mr: 3 }}>
+                  My Notes
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Chip label="Todays" size="small" />
+                  <Chip label="This Week" size="small" variant="outlined" />
+                  <Chip label="This Month" size="small" variant="outlined" />
+                </Box>
+              </Box>
+             
+            </Box>
+
+            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+              {note.slice((currentPage - 1) * notesPerPage, currentPage * notesPerPage).map((task, index) => (
+                <Link 
+                  to={`/taskdetails`} 
+                  state={{ noteId: task.note_id }} 
+                  style={{textDecoration:'none'}} 
+                  key={task.note_id}
+                >
+                  <Card sx={{ 
+                    width: 280, 
+                    height: 180,
+                    bgcolor: noteColors[index % noteColors.length],
+                    borderRadius: 3,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    transition: 'transform 0.2s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 3
+                    }
+                  }}>
+                    <CardContent sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
+                        <Typography sx={{ fontSize: '11px', color: '#666', fontFamily: 'Poppins' }}>
+                          {new Date(task.createdAt).toLocaleDateString()}
+                        </Typography>
+                        <IconButton size="small">
+                          <MoreVertIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                      <Typography sx={{ fontWeight: 'bold', fontFamily: 'Poppins', fontSize: '16px', mb: 1 }}>
+                        {task.title}
+                      </Typography>
+                      <Typography sx={{ 
+                        fontSize: '13px', 
+                        color: '#555',
+                        fontFamily: 'Poppins',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        flex: 1
+                      }}>
+                        {task.note_text}
+                      </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
+                        <Chip 
+                          icon={<CheckCircleIcon sx={{ fontSize: 14 }} />} 
+                          label="✓" 
+                          size="small"
+                          sx={{ 
+                            height: 20,
+                            bgcolor: 'rgba(0,0,0,0.1)',
+                            '& .MuiChip-label': { px: 0.5 }
+                          }}
+                        />
+                        <Typography sx={{ fontSize: '11px', color: '#666' }}>
+                          {new Date(task.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+              
+              {/* New Note Card */}
+              <Card 
+                onClick={handleAddTaskClick}
+                sx={{ 
+                  width: 280, 
+                  height: 180,
+                  border: '2px dashed #ccc',
+                  bgcolor: 'transparent',
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  '&:hover': {
+                    bgcolor: '#f5f5f5'
+                  }
+                }}
+              >
+                <Box sx={{ textAlign: 'center' }}>
+                  <AddIcon sx={{ fontSize: 40, color: '#999', mb: 1 }} />
+                  <Typography sx={{ fontFamily: 'Poppins', color: '#999' }}>New Note</Typography>
+                </Box>
+              </Card>
+            </Box>
+
+            {/* Pagination */}
+            <Box display="flex" justifyContent="center" mt={4}>
+              <Pagination
+                count={Math.ceil(note.length / notesPerPage)}
+                page={currentPage}
+                onChange={(_, value) => setCurrentPage(value)}
+                color="primary"
+              />
+            </Box>
+          </Box>
         </Box>
       </Box>
 
       {/* Add Task Dialog */}
-      <Dialog open={openAddDialog} onClose={handleCloseDialog}>
+      <Dialog open={openAddDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
         <form onSubmit={handleSubmit}>
-          <DialogTitle>Add New Note</DialogTitle>
+          <DialogTitle sx={{ fontFamily: 'Poppins', fontWeight: 'bold' }}>Add New Note</DialogTitle>
           <DialogContent>
             <TextField
               autoFocus
               margin="dense"
-              label="Task Title"
+              label="Note Title"
               fullWidth
               variant="outlined"
               value={newNote.title}
               onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
+              sx={{ mb: 2 }}
             />
             <TextField
               margin="dense"
-              label="Task Description"
+              label="Note Description"
               fullWidth
+              multiline
+              rows={4}
               variant="outlined"
               value={newNote.noteText}
               onChange={(e) => setNewNote({ ...newNote, noteText: e.target.value })}
             />
           </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button type='submit'>Add Task</Button>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={handleCloseDialog} sx={{ textTransform: 'none' }}>Cancel</Button>
+            <Button 
+              type='submit' 
+              variant="contained"
+              sx={{ 
+                bgcolor: '#091057',
+                textTransform: 'none',
+                '&:hover': { bgcolor: '#0a1a6b' }
+              }}
+            >
+              Add Note
+            </Button>
           </DialogActions>
         </form>
       </Dialog>
@@ -452,8 +586,6 @@ function TaskView() {
               </Box>
             </Box>
           )}
-
-
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseTransactionDialog} sx={{ color: "#091057" }}>
@@ -461,36 +593,7 @@ function TaskView() {
           </Button>
         </DialogActions>
       </Dialog>
-
-      <Box
-        bgcolor="#091057"
-        padding={3}
-        color="white"
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        marginTop="auto"
-      >
-        <Box display="flex" gap={3} marginBottom={2}>
-          <Typography component="button">
-            <i className="fab fa-facebook" style={{ color: "white", fontSize: "20px" }}></i>
-          </Typography>
-          <Typography component="button">
-            <i className="fab fa-instagram" style={{ color: "white", fontSize: "20px" }}></i>
-          </Typography>
-          <Typography component="button">
-            <i className="fab fa-twitter" style={{ color: "white", fontSize: "20px" }}></i>
-          </Typography>
-        </Box>
-        <Box display="flex" gap={3} fontFamily="Poppins" fontSize="14px">
-          <Typography>Home</Typography>
-          <Typography>About</Typography>
-          <Typography>Team</Typography>
-          <Typography>Services</Typography>
-          <Typography>Contact</Typography>
-        </Box>
-      </Box>
-    </div>
+    </Box>
   );
 }
 
