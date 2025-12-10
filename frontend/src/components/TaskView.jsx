@@ -73,14 +73,16 @@ function TaskView() {
 
   return (
     <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '100vh',
-        backgroundColor: darkMode ? "#121212" : "white",
-        color: darkMode ? "white" : "black"
-      }}
-    >
+  style={{
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '100vh',
+    backgroundColor: darkMode ? "#121212" : "white",
+    color: darkMode ? "white" : "black",
+    transition: "background-color 0.3s ease, color 0.3s ease"
+  }}
+>
+
 
       {/* HEADER */}
       <Box
@@ -100,50 +102,74 @@ function TaskView() {
         <Box display="flex" gap={3} alignItems="center">
 
           {/* 🌙 DARK MODE BUTTON */}
-          <Button
-            onClick={toggleDarkMode}
-            sx={{
-              color: "white",
-              textTransform: "none",
-              fontFamily: "Poppins",
-              fontWeight: "bold",
-              fontSize: "16px"
-            }}
-          >
+                              <Button
+              onClick={toggleDarkMode}
+              sx={{
+                backgroundColor: darkMode ? "#333" : "white",
+                color: darkMode ? "white" : "#091057",
+                padding: "6px 16px",
+                borderRadius: "10px",
+                textTransform: "none",
+                fontFamily: "Poppins",
+                fontWeight: "bold",
+                fontSize: "16px",
+                "&:hover": {
+                  backgroundColor: darkMode ? "#444" : "#e8e8e8",
+                }
+              }}
+            >
+
+
             {darkMode ? "Light Mode" : "Dark Mode"}
           </Button>
 
-          {/* HOME */}
-          <Link to="/tasks" style={{ textDecoration: 'none' }}>
-            <Typography sx={{
-              color: "white",
-              fontFamily: "Poppins",
-              fontSize: "16px",
-              cursor: "pointer",
-              fontWeight: "bold"
-            }}>
+        {/* 🌙 DARK MODE BUTTON */}
+
+
+{/* HOME */}
+<Link to="/tasks" style={{ textDecoration: 'none' }}>
+  <Button
+    sx={{
+      backgroundColor: darkMode ? "#333" : "white",
+      color: darkMode ? "white" : "#091057",
+      padding: "6px 16px",
+      borderRadius: "10px",
+      textTransform: "none",
+      fontFamily: "Poppins",
+      fontWeight: "bold",
+      fontSize: "16px",
+      "&:hover": {
+        backgroundColor: darkMode ? "#444" : "#e8e8e8",
+      }
+    }}
+  >
               Home
-            </Typography>
+            </Button>
           </Link>
 
           {/* LOGOUT */}
-          <Link to="/login" style={{ textDecoration: 'none' }}>
-            <Typography
-              sx={{
-                color: "white",
-                fontFamily: "Poppins",
-                fontSize: "16px",
-                cursor: "pointer",
-                fontWeight: "bold"
-              }}
-              onClick={() => {
-                localStorage.removeItem('loggedInUserId');
-                navigate('/login');
-              }}
-            >
-              Logout
-            </Typography>
-          </Link>
+          <Button
+            onClick={() => {
+              localStorage.removeItem('loggedInUserId');
+              navigate('/login');
+            }}
+            sx={{
+              backgroundColor: darkMode ? "#333" : "white",
+              color: darkMode ? "white" : "#091057",
+              padding: "6px 16px",
+              borderRadius: "10px",
+              textTransform: "none",
+              fontFamily: "Poppins",
+              fontWeight: "bold",
+              fontSize: "16px",
+              "&:hover": {
+                backgroundColor: darkMode ? "#444" : "#e8e8e8",
+              }
+            }}
+          >
+            Logout
+          </Button>
+
 
         </Box>
       </Box>
