@@ -67,61 +67,64 @@ function TaskView() {
 
   // Function to sync/connect wallet using CIP-0030 standard
   const handleSyncWallet = async () => {
-    try {
-      setWalletError('');
-      setWalletSuccess('');
+  try {
+    setWalletError('');
+    setWalletSuccess('');
 
-      // Check if Cardano object exists
-      if (!window.cardano) {
-        setWalletError('Cardano object not found. Please ensure a Cardano wallet extension is installed.');
-        return;
-      }
-
-      // Try to connect to Lace wallet first, then fallback to other wallets
-      const walletOptions = ['lace', 'eternl', 'flint', 'nami'];
-      let connected = false;
-      let connectedWalletName = '';
-
-      for (const wallet of walletOptions) {
-        if (window.cardano[wallet]) {
-          try {
-            // This is the CIP-0030 enable() method that asks for permission
-            const api = await window.cardano[wallet].enable();
-            setWalletApi(api);
-            console.log("WalletAPI: ",api);
-            if (api) {
-              // Get the wallet's unused addresses
-              const walletAddress = await api.getChangeAddress();
-              console.log("Wallet Address: ",walletAddress);
-              setWalletAddress(walletAddress);
-            }
-          } catch (error) {
-            // User rejected permission or other error, try next wallet
-            console.log(`Could not connect to ${wallet}:`, error.message);
-            continue;
-          }
-        }
-      }
-
-      if (!connected) {
-        setWalletError('No Cardano wallet found or permission denied. Please install Lace, Eternl, Flint, or Nami wallet extension.');
-      }
-    } catch (error) {
-      console.error('Error syncing wallet:', error);
-      setWalletError(`Error: ${error.message || 'Failed to sync wallet'}`);
-    }
-  };
-
-  useEffect(() => {
-  const fetchTasks = async () => {
-    if (!userId) {
-      console.error('UserId is missing');
+    // Check if Cardano object exists
+    if (!window.cardano) {
+      setWalletError('Cardano object not found. Please ensure a Cardano wallet extension is installed.');
       return;
     }
 
+    // Try to connect to Lace wallet first, then fallback to other wallets
+    const walletOptions = ['lace', 'eternl', 'flint', 'nami'];
+    let connected = false;
+    let connectedWalletName = '';
+
+    for (const wallet of walletOptions) {
+      if (window.cardano[wallet]) {
+        try {
+          // This is the CIP-0030 enable() method that asks for permission
+          const api = await window.cardano[wallet].enable();
+          setWalletApi(api);
+          console.log("WalletAPI: ", api);
+          if (api) {
+            // Get the wallet's unused addresses
+            const walletAddress = await api.getChangeAddress();
+            console.log("Wallet Address: ", walletAddress);
+            setWalletAddress(walletAddress);
+            setWalletName(wallet);
+            setWalletConnected(true);
+          }
+          connected = true;
+          connectedWalletName = wallet;
+          break;
+        } catch (error) {
+          // User rejected permission or other error, try next wallet
+          console.log(`Could not connect to ${wallet}:`, error.message);
+          continue;
+        }
+      }
+    }
+
+    if (!connected) {
+      setWalletError('No Cardano wallet found or permission denied. Please install Lace, Eternl, Flint, or Nami wallet extension.');
+    } else {
+      setWalletSuccess(`Connected to ${connectedWalletName}`);
+      localStorage.setItem('connectedWallet', connectedWalletName);
+      localStorage.setItem('walletAddress', walletAddress);
+    }
+  } catch (error) {
+    console.error('Error syncing wallet:', error);
+    setWalletError(`Error: ${error.message || 'Failed to sync wallet'}`);
+  }
+};
+
+
+  useEffect(() => {
+  const fetchTasks = async () => {
     try {
-      const api = await window.cardano['lace'].enable();
-      setWalletApi(api);
       console.log("WalletAPI: ",api);
       const response = await axios.get(`http://localhost:8080/api/note/tasks?userId=${userId}`);
       // Sort notes so newest is first
@@ -343,13 +346,16 @@ function TaskView() {
     <Button
       variant="contained"
       startIcon={<AddIcon />}
+      disabled={!walletConnected}
       sx={{
-        backgroundColor: "#EC8305",
+        backgroundColor: walletConnected ? "#EC8305" : "#bfbfbf",
         color: "white",
         fontFamily: "Poppins",
         textTransform: "none",
+        cursor: walletConnected ? "pointer" : "not-allowed",
       }}
-      onClick={handleAddTaskClick}
+      title={!walletConnected ? "Please sync your wallet first" : "Add a new note"}
+      onClick={walletConnected ? handleAddTaskClick : null}
     >
       Add Note
     </Button>
