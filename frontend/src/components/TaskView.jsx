@@ -14,10 +14,10 @@ import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextF
 import Logo from "../assets/Logo1.png";
 import SearchIcon from '@mui/icons-material/Search';
 import MenuIcon from '@mui/icons-material/Menu';
-import FolderIcon from '@mui/icons-material/Folder';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { pollTx, sendTransaction } from '../blockchain';
 import { loadNotes, saveNotes, upsertNote } from '../store';
+import HistoryIcon from '@mui/icons-material/History';
 
 function TaskView() {
   const noteColors = ['#FFF9C4', '#FFCCBC', '#B3E5FC', '#C5E1A5', '#F8BBD0'];
@@ -509,7 +509,20 @@ useEffect(() => {
                 }
               }}
             />
-            
+            <Button
+              component={Link}
+              to="/transactions"
+              startIcon={<HistoryIcon />}
+              variant="contained"
+              sx={{
+                bgcolor: '#091057',
+                color: 'white',
+                textTransform: 'none',
+                '&:hover': { bgcolor: '#0a1a6b' }
+              }}
+            >
+              Transaction History
+            </Button>
           </Box>
         </Box>
 

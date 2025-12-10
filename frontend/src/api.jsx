@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:8080/api/user';
+const TX_HISTORY_BASE_URL = 'http://localhost:8080/api/transaction-history';
 
 const authHeaders = () => ({
   headers: {
@@ -19,3 +20,7 @@ export const updateToDoList = (id, updatedList) => axios.put(`${API_BASE_URL}/up
 export const deleteToDoList = (id) => axios.delete(`${API_BASE_URL}/deleteT/${id}`, authHeaders());
 export const getToDosByUserId = async (userId) => axios.get(`${API_BASE_URL}/todos`, { ...authHeaders(), params: { userId } });
 export const viewToDoList = () => axios.put(`${API_BASE_URL}/allT`, {}, authHeaders());
+
+// Transaction history (wallet-based) helpers
+export const getTransactionHistoryByWallet = (walletAddress) =>
+  axios.get(`${TX_HISTORY_BASE_URL}/wallet/${encodeURIComponent(walletAddress)}`);
