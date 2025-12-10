@@ -1,6 +1,8 @@
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import HistoryIcon from '@mui/icons-material/History';
 import LinkIcon from '@mui/icons-material/Link';
 import RefreshIcon from '@mui/icons-material/Refresh';
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {
     Alert,
     Box,
@@ -34,6 +36,7 @@ const statusColor = (status = '') => {
 };
 
 const TransactionHistory = () => {
+  const navigate = useNavigate();
   const [walletAddress, setWalletAddress] = useState(localStorage.getItem('walletAddress') || '');
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -78,13 +81,12 @@ const TransactionHistory = () => {
             </Typography>
           </Box>
           <Button
-            component={RouterLink}
-            to="/blockchain"
-            startIcon={<LinkIcon />}
+            onClick={() => navigate('/tasks')}
+            startIcon={<ArrowBackIcon />}
             variant="outlined"
             sx={{ textTransform: 'none' }}
           >
-            Go to Wallet Connection
+            Return to Notes
           </Button>
         </Box>
 
@@ -103,7 +105,7 @@ const TransactionHistory = () => {
                 startIcon={loading ? <CircularProgress size={18} color="inherit" /> : <RefreshIcon />}
                 onClick={() => loadTransactions(walletAddress)}
                 disabled={loading}
-                sx={{ backgroundColor: '#091057', '&:hover': { backgroundColor: '#0d1b73' }, textTransform: 'none' }}
+                sx={{ backgroundColor: '#091057', '&:hover': { backgroundColor: '#0d1b73' }, textTransform: 'none', color:'white' }}
               >
                 Refresh
               </Button>
