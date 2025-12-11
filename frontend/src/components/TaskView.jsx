@@ -8,16 +8,9 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import AddIcon from '@mui/icons-material/Add';
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import WalletIcon from '@mui/icons-material/Wallet';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert, Pagination, InputAdornment, Card, CardContent, Chip } from '@mui/material';
-import Logo from "../assets/Logo1.png";
 import SearchIcon from '@mui/icons-material/Search';
-import MenuIcon from '@mui/icons-material/Menu';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { pollTx, sendTransaction } from '../blockchain';
-import { loadNotes, saveNotes, upsertNote } from '../store';
 import HistoryIcon from '@mui/icons-material/History';
 
 function TaskView() {
@@ -88,6 +81,7 @@ const theme = createTheme({
     return addr.to_bech32();
   };
 
+
   // Function to sync/connect wallet using CIP-0030 standard
   const handleSyncWallet = async () => {
   try {
@@ -100,25 +94,6 @@ const theme = createTheme({
       return;
     }
 
-    // Check localStorage first
-    const storedWalletName = localStorage.getItem('connectedWallet');
-    const storedWalletAddress = localStorage.getItem('walletAddress');
-
-    if (storedWalletName && storedWalletAddress) {
-      setWalletName(storedWalletName);
-      setWalletAddress(storedWalletAddress);
-      setWalletConnected(true);
-      setWalletSuccess(`Restored connection to ${storedWalletName}`);
-      
-      // Optionally fetch notes for this wallet
-      const res = await axios.get(
-        `http://localhost:8080/api/note/get/by-wallet/${storedWalletAddress}`
-      );
-      setNote(res.data);
-
-      return; // Skip connecting again
-    }
-
     // Try to connect to wallets if nothing in localStorage
     const walletOptions = ['lace', 'eternl', 'flint', 'nami'];
     let connected = false;
@@ -127,6 +102,7 @@ const theme = createTheme({
     for (const wallet of walletOptions) {
       if (window.cardano[wallet]) {
         try {
+          console.log("marker");
           const api = await window.cardano[wallet].enable();
           setWalletApi(api);
           if (api) {
@@ -205,6 +181,7 @@ useEffect(() => {
 
   fetchTasks();
 }, [walletAddress]);
+
 // Auto-refresh notes every 8 seconds
 useEffect(() => {
   if (!walletAddress) return;
@@ -317,7 +294,7 @@ useEffect(() => {
       `http://localhost:8080/api/note/get/by-wallet/${walletAddress}`
     );
     setNote(res.data);
-
+    setOpenAddDialog(false);
   } catch (error) {
     console.error("Error posting task:", error);
   }

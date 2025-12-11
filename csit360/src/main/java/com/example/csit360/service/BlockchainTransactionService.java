@@ -163,7 +163,7 @@ public class BlockchainTransactionService {
                 "DELETE",
                 txHash,
                 walletAddress,
-                "pending"      // <-- important, not pending
+                "pending"  
         );
         transactionHistoryRepository.save(transaction);
 
@@ -172,7 +172,7 @@ public class BlockchainTransactionService {
 
         // Build response
         Map<String, Object> response = new HashMap<>();
-        response.put("status", "deleted");
+        response.put("status", "pending");
         response.put("noteId", noteId);
         response.put("txHash", txHash);
         response.put("walletAddress", walletAddress);
