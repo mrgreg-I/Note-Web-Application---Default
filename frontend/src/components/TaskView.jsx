@@ -102,7 +102,6 @@ const theme = createTheme({
     for (const wallet of walletOptions) {
       if (window.cardano[wallet]) {
         try {
-          console.log("marker");
           const api = await window.cardano[wallet].enable();
           setWalletApi(api);
           if (api) {
@@ -122,7 +121,6 @@ const theme = createTheme({
               `http://localhost:8080/api/note/get/by-wallet/${walletAddr}`
             );
             setNote(res.data);
-
             connected = true;
             connectedWalletName = wallet;
             break;
@@ -245,6 +243,7 @@ useEffect(() => {
 };
   const postNote = async (note) => {
   try {
+    handleSyncWallet();
     // 1. Run blockchain transaction
     const txResult = await handleSubmitTransaction(note);
 
@@ -327,14 +326,14 @@ useEffect(() => {
   const handleSubmitTransaction = async (note) =>{
     // Define the Lovelace amount here, or pass it as a parameter
     const lovelaceAmount = 1_000_000n; 
-    
+    handleSyncWallet();
     if(walletApi){
       try{
         const wallet = new WebWallet(walletApi)
         const blaze= await Blaze.from(provider,wallet)
         console.log("Blaze instance created!", blaze);
-        const bench32Address = Core.Address.fromBytes(Buffer.from(walletAddress, 'hex')).toBech32;
-        console.log("Recipient Address (bech32): ",bench32Address);
+        const bech32Address = Core.Address.fromBytes(Buffer.from(walletAddress, 'hex')).toBech32;
+        console.log("Recipient Address (bech32): ",bech32Address);
         let tx = await blaze
         .newTransaction()
         .payLovelace(

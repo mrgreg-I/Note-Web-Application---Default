@@ -95,6 +95,7 @@ useEffect(() => {
   };
   fetchWallet();
 }, []);
+
  useEffect(() => {
   const fetchData = async () => {
     if (noteId) {
@@ -189,7 +190,7 @@ useEffect(() => {
     setWalletName('');
     setWalletAddress('');
     setWalletApi(null);
-  
+    navigate('/tasks');
     // Clear notes
     setNote([]);
   
@@ -259,8 +260,8 @@ const handleSubmitTransaction = async (note) =>{
         const wallet = new WebWallet(walletApi)
         const blaze= await Blaze.from(provider,wallet)
         console.log("Blaze instance created!", blaze);
-        const bench32Address = Core.Address.fromBytes(Buffer.from(walletAddress, 'hex')).toBech32;
-        console.log("Recipient Address (bech32): ",bench32Address);
+        const bech32Address = Core.Address.fromBytes(Buffer.from(walletAddress, 'hex')).toBech32;
+        console.log("Recipient Address (bech32): ",bech32Address);
         let tx = await blaze
         .newTransaction()
         .payLovelace(
