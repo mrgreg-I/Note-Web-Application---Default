@@ -55,6 +55,10 @@ function TaskDetails() {
     updatedAt: new Date().toISOString(),
     user: { userId: '' },
   });
+  const [darkMode, setDarkMode] = useState(
+  localStorage.getItem("darkMode") === "true"
+);
+
 
   const [transactionInfo, setTransactionInfo] = useState(null);
   const [showTransactionDialog, setShowTransactionDialog] = useState(false);
@@ -116,6 +120,7 @@ useEffect(() => {
   }, [noteId]);
 
   const handleSyncWallet = async () => {
+   
     try {
       setWalletError('');
       setWalletSuccess('');
@@ -493,7 +498,14 @@ const handleUpdateChange = (e) => {
 
 
     return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#f5f5f5' }}>
+    <Box 
+  sx={{ 
+    display: 'flex', 
+    minHeight: '100vh', 
+    bgcolor: darkMode ? '#1e1e1e' : '#f5f5f5'
+  }}
+>
+
       <Box sx={{ 
         width: '250px', 
         bgcolor: 'white', 
@@ -678,12 +690,14 @@ const handleUpdateChange = (e) => {
 
         {/* Content Area */}
         <Box sx={{ flex: 1, p: 4, overflow: 'auto' }}>
-          <Card sx={{ 
+                    <Card sx={{
             maxWidth: 800,
             mx: 'auto',
             borderRadius: 3,
-            boxShadow: 2
+            boxShadow: 2,
+            bgcolor: darkMode ? '#2b2b2b' : 'white',  // DARK MODE CARD
           }}>
+
             <CardContent sx={{ p: 4 }}>
               {/* Title Section */}
               <Box sx={{ mb: 4 }}>
@@ -770,19 +784,21 @@ const handleUpdateChange = (e) => {
                   />
                 ) : (
                   <Box sx={{
-                    bgcolor: '#f9f9f9',
-                    borderRadius: 2,
-                    p: 3,
-                    minHeight: 200,
-                    border: '1px solid #e0e0e0'
-                  }}>
-                    <Typography sx={{ 
-                      fontFamily: 'Poppins', 
+                      bgcolor: darkMode ? '#3a3a3a' : '#f9f9f9',
+                      borderRadius: 2,
+                      p: 3,
+                      minHeight: 200,
+                      border: '1px solid #444',
+                    }}>
+
+                    <Typography sx={{
+                      fontFamily: 'Poppins',
                       fontSize: '16px',
                       lineHeight: 1.8,
-                      color: '#333',
+                      color: darkMode ? '#e6e6e6' : '#333',
                       whiteSpace: 'pre-wrap'
                     }}>
+
                       {currentData.noteText}
                     </Typography>
                   </Box>
