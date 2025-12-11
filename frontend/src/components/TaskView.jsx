@@ -308,8 +308,11 @@ useEffect(() => {
     );
     setNote(res.data);
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
     setOpenAddDialog(false);
 =======
+=======
+>>>>>>> Stashed changes
     
     // Unlock submissions after success
     setIsSubmittingTransaction(false);
