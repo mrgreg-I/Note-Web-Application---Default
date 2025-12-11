@@ -8,16 +8,9 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import AddIcon from '@mui/icons-material/Add';
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import WalletIcon from '@mui/icons-material/Wallet';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { Box, IconButton, Menu, MenuItem, Select, InputLabel, FormControl, TextField, Dialog, DialogActions, DialogContent, DialogTitle, Alert, Pagination, InputAdornment, Card, CardContent, Chip } from '@mui/material';
-import Logo from "../assets/Logo1.png";
 import SearchIcon from '@mui/icons-material/Search';
-import MenuIcon from '@mui/icons-material/Menu';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
-import { pollTx, sendTransaction } from '../blockchain';
-import { loadNotes, saveNotes, upsertNote } from '../store';
 import HistoryIcon from '@mui/icons-material/History';
 
 function TaskView() {
@@ -88,6 +81,7 @@ const theme = createTheme({
     return addr.to_bech32();
   };
 
+
   // Function to sync/connect wallet using CIP-0030 standard
   const handleSyncWallet = async () => {
   try {
@@ -98,25 +92,6 @@ const theme = createTheme({
     if (!window.cardano) {
       setWalletError('Cardano object not found. Please ensure a Cardano wallet extension is installed.');
       return;
-    }
-
-    // Check localStorage first
-    const storedWalletName = localStorage.getItem('connectedWallet');
-    const storedWalletAddress = localStorage.getItem('walletAddress');
-
-    if (storedWalletName && storedWalletAddress) {
-      setWalletName(storedWalletName);
-      setWalletAddress(storedWalletAddress);
-      setWalletConnected(true);
-      setWalletSuccess(`Restored connection to ${storedWalletName}`);
-      
-      // Optionally fetch notes for this wallet
-      const res = await axios.get(
-        `http://localhost:8080/api/note/get/by-wallet/${storedWalletAddress}`
-      );
-      setNote(res.data);
-
-      return; // Skip connecting again
     }
 
     // Try to connect to wallets if nothing in localStorage
@@ -146,7 +121,6 @@ const theme = createTheme({
               `http://localhost:8080/api/note/get/by-wallet/${walletAddr}`
             );
             setNote(res.data);
-
             connected = true;
             connectedWalletName = wallet;
             break;
@@ -206,6 +180,29 @@ useEffect(() => {
   fetchTasks();
 }, [walletAddress]);
 
+// Auto-refresh notes every 8 seconds
+useEffect(() => {
+  if (!walletAddress) return;
+
+  const interval = setInterval(async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:8080/api/note/get/by-wallet/${walletAddress}`
+      );
+
+      const sortedNotes = (response.data || []).sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+
+      setNote(sortedNotes);
+    } catch (error) {
+      console.error("Auto-refresh error:", error);
+    }
+  }, 8000); // 8 seconds
+
+  return () => clearInterval(interval); // cleanup
+}, [walletAddress]);
+
 
   const handleAddTaskClick = () => {
     setOpenAddDialog(true);
@@ -246,6 +243,7 @@ useEffect(() => {
 };
   const postNote = async (note) => {
   try {
+    handleSyncWallet();
     // 1. Run blockchain transaction
     const txResult = await handleSubmitTransaction(note);
 
@@ -295,7 +293,7 @@ useEffect(() => {
       `http://localhost:8080/api/note/get/by-wallet/${walletAddress}`
     );
     setNote(res.data);
-
+    setOpenAddDialog(false);
   } catch (error) {
     console.error("Error posting task:", error);
   }
@@ -328,14 +326,14 @@ useEffect(() => {
   const handleSubmitTransaction = async (note) =>{
     // Define the Lovelace amount here, or pass it as a parameter
     const lovelaceAmount = 1_000_000n; 
-    
+    handleSyncWallet();
     if(walletApi){
       try{
         const wallet = new WebWallet(walletApi)
         const blaze= await Blaze.from(provider,wallet)
         console.log("Blaze instance created!", blaze);
-        const bench32Address = Core.Address.fromBytes(Buffer.from(walletAddress, 'hex')).toBech32;
-        console.log("Recipient Address (bech32): ",bench32Address);
+        const bech32Address = Core.Address.fromBytes(Buffer.from(walletAddress, 'hex')).toBech32;
+        console.log("Recipient Address (bech32): ",bech32Address);
         let tx = await blaze
         .newTransaction()
         .payLovelace(
@@ -791,14 +789,12 @@ useEffect(() => {
                         {task.note_text}
                       </Typography>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-                        <Chip 
-                          icon={<CheckCircleIcon sx={{ fontSize: 14 }} />} 
-                          label="✓" 
-                          size="small"
-                          sx={{ 
-                            height: 20,
-                            bgcolor: 'rgba(0,0,0,0.1)',
-                            '& .MuiChip-label': { px: 0.5 }
+                        <Box
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            bgcolor: task.status === 'confirmed' ? '#2e7d32' : '#ed6c02'
                           }}
                         />
                         <Typography sx={{ fontSize: '11px', color: '#666' }}>
