@@ -6,20 +6,38 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 @Entity
+@Table(name="notes")
 public class Note {
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
-    private int noteId;
+    private Long noteId;
     private String title;
     private String noteText;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    public int getNoteId() {
+    private String status = "pending"; // pending or confirmed
+    private String txhash; // Transaction hash from blockchain
+    private String walletAddress; // Wallet address that created the not
+
+    public Note() {
+    }
+
+    public Note(Long noteId, String title, String noteText, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.noteId = noteId;
+        this.title = title;
+        this.noteText = noteText;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
+    
+    public Long getNoteId() {
         return noteId;
     }
-    public void setNoteId(int noteId) {
+    public void setNoteId(Long noteId) {
         this.noteId = noteId;
     }
     public String getTitle() {
@@ -45,5 +63,39 @@ public class Note {
     }
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+    @PrePersist
+    protected void onCreate(){
+        this.createdAt=LocalDateTime.now();
+        this.updatedAt=LocalDateTime.now();
+    }
+    @PreUpdate
+    protected void onUpdate(){
+        this.updatedAt=LocalDateTime.now();
+    }
+
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getTxhash() {
+        return txhash;
+    }
+
+    public void setTxhash(String txhash) {
+        this.txhash = txhash;
+    }
+
+    public String getWalletAddress() {
+        return walletAddress;
+    }
+
+    public void setWalletAddress(String walletAddress) {
+        this.walletAddress = walletAddress;
     }
 }
