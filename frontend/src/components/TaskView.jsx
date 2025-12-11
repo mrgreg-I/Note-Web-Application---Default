@@ -205,6 +205,28 @@ useEffect(() => {
 
   fetchTasks();
 }, [walletAddress]);
+// Auto-refresh notes every 8 seconds
+useEffect(() => {
+  if (!walletAddress) return;
+
+  const interval = setInterval(async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:8080/api/note/get/by-wallet/${walletAddress}`
+      );
+
+      const sortedNotes = (response.data || []).sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+
+      setNote(sortedNotes);
+    } catch (error) {
+      console.error("Auto-refresh error:", error);
+    }
+  }, 8000); // 8 seconds
+
+  return () => clearInterval(interval); // cleanup
+}, [walletAddress]);
 
 
   const handleAddTaskClick = () => {
@@ -791,14 +813,12 @@ useEffect(() => {
                         {task.note_text}
                       </Typography>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-                        <Chip 
-                          icon={<CheckCircleIcon sx={{ fontSize: 14 }} />} 
-                          label="✓" 
-                          size="small"
-                          sx={{ 
-                            height: 20,
-                            bgcolor: 'rgba(0,0,0,0.1)',
-                            '& .MuiChip-label': { px: 0.5 }
+                        <Box
+                          sx={{
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            bgcolor: task.status === 'confirmed' ? '#2e7d32' : '#ed6c02'
                           }}
                         />
                         <Typography sx={{ fontSize: '11px', color: '#666' }}>

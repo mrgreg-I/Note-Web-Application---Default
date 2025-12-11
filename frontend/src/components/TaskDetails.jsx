@@ -502,13 +502,6 @@ const handleUpdateChange = (e) => {
         flexDirection: 'column',
         p: 3
       }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 4 }}>
-          <img src={Logo} alt="Logo" style={{ height: '30px', marginRight: '12px' }} />
-          <Typography sx={{ fontWeight: 'bold', fontSize: '20px', fontFamily: 'Poppins' }}>
-            Default
-          </Typography>
-        </Box>
-
         <Button
           fullWidth
           variant="contained"
@@ -686,7 +679,7 @@ const handleUpdateChange = (e) => {
           }}>
             <CardContent sx={{ p: 4 }}>
               {/* Title Section */}
-              <Box sx={{ mb: 4 }}>
+              <Box sx={{ mb: 2 }}>
                 <Typography sx={{ 
                   fontFamily: 'Poppins', 
                   fontSize: '12px', 
@@ -720,6 +713,21 @@ const handleUpdateChange = (e) => {
                     {currentData.title}
                   </Typography>
                 )}
+              <Box sx={{mt:1}}>
+              <Typography sx={{ fontFamily: 'Poppins', fontSize: '12px', color: '#999', mb: 0.5 }}>
+                TxHash
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: 'Poppins',
+                  fontSize: '14px',
+                  color: '#333',
+                  wordBreak: 'break-all',
+                }}
+              >
+                {currentData.txhash || "—"}
+              </Typography>
+              </Box>
               </Box>
 
               {/* Metadata */}
@@ -740,6 +748,22 @@ const handleUpdateChange = (e) => {
                     {new Date(currentData.updatedAt).toLocaleString()}
                   </Typography>
                 </Box>
+                <Box>
+              <Typography sx={{ fontFamily: 'Poppins', fontSize: '12px', color: '#999', mb: 0.5 }}>
+                Status
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: 'Poppins',
+                  fontSize: '14px',
+                  color: currentData.status === "confirmed" ? '#2e7d32' : '#ed6c02',
+                  fontWeight: 600,
+                  textTransform: 'capitalize'
+                }}
+              >
+                {currentData.status}
+              </Typography>
+            </Box>
               </Box>
 
               {/* Content Section */}
