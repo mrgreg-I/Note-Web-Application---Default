@@ -307,17 +307,11 @@ useEffect(() => {
       `http://localhost:8080/api/note/get/by-wallet/${walletAddress}`
     );
     setNote(res.data);
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
     setOpenAddDialog(false);
-=======
-=======
->>>>>>> Stashed changes
     
     // Unlock submissions after success
     setIsSubmittingTransaction(false);
 
->>>>>>> Stashed changes
   } catch (error) {
     console.error("Error posting task:", error);
     setTransactionError("Error posting note: " + error.message);
